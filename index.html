@@ -1721,7 +1721,7 @@
       let sb = null;
       const ERR = { NOT_CONFIGURED: 'Website chưa được cấu hình Supabase (xem file hướng dẫn).', NO_SDK: 'Không tải được thư viện Supabase. Kiểm tra kết nối Internet.',
         INVALID_NAME: 'Họ và tên không hợp lệ.', INVALID_CLASS: 'Lớp không hợp lệ (ví dụ: 11A1).', NO_QUESTIONS: 'Chưa có câu hỏi nào được bật trong hệ thống.',
-        ATTEMPT_NOT_FOUND: 'Không tìm thấy lượt làm bài này (có thể đã đổi trình duyệt hoặc phiên đã hết hạn).', NOT_SUBMITTED: 'Bài làm này chưa được nộp.' };
+        ATTEMPT_NOT_FOUND: 'Không tìm thấy lượt làm bài này (có thể đã đổi trình duyệt hoặc phiên đã hết hạn).', NOT_SUBMITTED: 'Bài làm này chưa được nộp.', NOT_TEACHER: 'Tài khoản không có quyền giáo viên.' };
       const errText = e => { const m = (e && e.message) || String(e); if (ERR[m]) return ERR[m];
         if (/fetch|network|Failed to|Load failed/i.test(m)) return 'Mất kết nối mạng. Bài làm vẫn được giữ trên máy, hãy kiểm tra mạng rồi thử lại.';
         if (/anonymous/i.test(m)) return 'Supabase chưa bật "Allow anonymous sign-ins" hoặc đã vượt giới hạn đăng nhập. (' + m + ')';
@@ -1893,14 +1893,14 @@
       function tRender() {
         const keep = { q: $('t-q') ? $('t-q').value : '', c: $('t-c') ? $('t-c').value : '', f: $('t-f') ? $('t-f').value : '', t: $('t-t') ? $('t-t').value : '' };
         const classes = [...new Set(T.rows.map(r => r.students.class_name))].sort();
-        troot().innerHTML = `<div class="pr-card"><div class="pr-row"><h2>📊 Kết quả luyện tập</h2><div style="display:flex;gap:.5rem;flex-wrap:wrap"><button class="btn" onclick="PRT.reload()">↻ Tải lại</button><button class="btn" onclick="PRT.csv()">⬇ Xuất CSV</button><button class="btn" onclick="PRT.logout()">Đăng xuất</button><button class="btn" onclick="switchView('practice')">Quay lại</button></div></div>
+        troot().innerHTML = `<div class="pr-card"><div class="pr-row"><h2>📊 Kết quả luyện tập</h2><div style="display:flex;gap:.5rem;flex-wrap:wrap"><button class="btn" onclick="PRT.reload()">↻ Tải lại</button><button class="btn" onclick="PRT.csv()">⬇ Xuất CSV</button><button class="btn btn-danger" onclick="PRT.del()">🗑 Xóa các lượt đã chọn</button><button class="btn" onclick="PRT.logout()">Đăng xuất</button><button class="btn" onclick="switchView('practice')">Quay lại</button></div></div>
           <div class="pr-row" style="margin:1rem 0;justify-content:flex-start"><input id="t-q" class="pr-input" style="max-width:220px" placeholder="Tìm theo tên" oninput="PRT.render()" value="${esc(keep.q)}">
           <select id="t-c" class="pr-input" style="max-width:140px" onchange="PRT.render()"><option value="">Tất cả lớp</option>${classes.map(x => `<option ${x === keep.c ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select>
           <label style="font-size:.8rem">Từ <input id="t-f" type="date" class="pr-input" style="width:auto" onchange="PRT.render()" value="${keep.f}"></label><label style="font-size:.8rem">Đến <input id="t-t" type="date" class="pr-input" style="width:auto" onchange="PRT.render()" value="${keep.t}"></label></div>
-          <div style="overflow-x:auto"><table class="pr-tbl"><thead><tr><th>Họ và tên</th><th>Lớp</th><th>Lần</th><th>Bắt đầu</th><th>Nộp bài</th><th>Điểm</th><th>Đúng</th><th>Sai</th><th>Bỏ trống</th><th>Trạng thái</th></tr></thead><tbody id="t-body"></tbody></table></div><div id="t-detail"></div></div>`;
+          <div style="overflow-x:auto"><table class="pr-tbl"><thead><tr><th><input type="checkbox" title="Chọn tất cả đang hiển thị" onclick="PRT.all(this.checked)"></th><th>Họ và tên</th><th>Lớp</th><th>Lần</th><th>Bắt đầu</th><th>Nộp bài</th><th>Điểm</th><th>Đúng</th><th>Sai</th><th>Bỏ trống</th><th>Trạng thái</th></tr></thead><tbody id="t-body"></tbody></table></div><div id="t-detail"></div></div>`;
         if (keep.q) $('t-q').focus();
         T.sel = tFilter();
-        $('t-body').innerHTML = T.sel.map((r, i) => `<tr class="clk" onclick="PRT.detail(${i})"><td>${esc(r.students.full_name)}</td><td>${esc(r.students.class_name)}</td><td>${r.attempt_number}</td><td>${fmtDT(r.started_at)}</td><td>${fmtDT(r.submitted_at)}</td><td>${r.score ?? ''}</td><td>${r.correct_count ?? ''}</td><td>${r.wrong_count ?? ''}</td><td>${r.unanswered_count ?? ''}</td><td>${r.status === 'submitted' ? 'Đã nộp' : r.status === 'in_progress' ? 'Đang làm' : 'Lỗi'}</td></tr>`).join('') || '<tr><td colspan="10">Không có dữ liệu.</td></tr>';
+        $('t-body').innerHTML = T.sel.map((r, i) => `<tr class="clk" onclick="PRT.detail(${i})"><td onclick="event.stopPropagation()"><input type="checkbox" class="t-ck" data-id="${r.id}"></td><td>${esc(r.students.full_name)}</td><td>${esc(r.students.class_name)}</td><td>${r.attempt_number}</td><td>${fmtDT(r.started_at)}</td><td>${fmtDT(r.submitted_at)}</td><td>${r.score ?? ''}</td><td>${r.correct_count ?? ''}</td><td>${r.wrong_count ?? ''}</td><td>${r.unanswered_count ?? ''}</td><td>${r.status === 'submitted' ? 'Đã nộp' : r.status === 'in_progress' ? 'Đang làm' : 'Lỗi'}</td></tr>`).join('') || '<tr><td colspan="11">Không có dữ liệu.</td></tr>';
       }
       async function detail(i) {
         const r = T.sel[i]; const box = $('t-detail'); box.innerHTML = '<p style="margin-top:1rem">Đang tải...</p>';
@@ -1915,8 +1915,15 @@
         const blob = new Blob(['\ufeff' + rows.map(r => r.map(cell).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'ket-qua-luyen-tap.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
       }
+      function all(v) { document.querySelectorAll('.t-ck').forEach(c => c.checked = v); }
+      async function del() {
+        const ids = [...document.querySelectorAll('.t-ck:checked')].map(c => c.dataset.id);
+        if (!ids.length) return alert('Hãy tích chọn các lượt làm bài cần xóa.');
+        if (!confirm(`XÓA VĨNH VIỄN ${ids.length} lượt làm bài (cùng chi tiết câu trả lời)? Không thể khôi phục. Hãy chắc chắn bạn đã xuất CSV.`)) return;
+        try { await rpc('practice_delete_attempts', { p_ids: ids }); await tLoad(); } catch (e) { alert('Không xóa được: ' + errText(e)); }
+      }
       async function logout() { try { await client().auth.signOut(); } catch (e) {} tLogin(); }
-      window.PRT = { login, logout, reload: tLoad, render: tRender, detail, csv };
+      window.PRT = { all, del, login, logout, reload: tLoad, render: tRender, detail, csv };
 
       /* ---------- Gắn vào switchView hiện có (bọc, không sửa hàm gốc) ---------- */
       const baseSwitch = window.switchView;
