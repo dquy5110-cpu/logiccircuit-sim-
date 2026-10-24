@@ -1,0 +1,1931 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LogicCircuit-Sim | Mô phỏng Mạch Logic & Số Học Nhị Phân</title>
+    <style>
+        :root {
+            --bg-main: #0f172a;
+            --bg-card: #1e293b;
+            --bg-sidebar: #111827;
+            --accent-blue: #3b82f6;
+            --accent-emerald: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-red: #ef4444;
+            --text-light: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --wire-high: #22c55e;
+            --wire-low: #64748b;
+            --wire-undef: #f59e0b;
+            --wire-selected: #38bdf8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-light);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Header Navigation */
+        header {
+            background-color: var(--bg-sidebar);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: var(--accent-blue);
+        }
+
+        .logo svg {
+            width: 28px;
+            height: 28px;
+            fill: var(--accent-blue);
+        }
+
+        nav {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .nav-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 0.5rem 0.85rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .nav-btn:hover {
+            color: var(--text-light);
+            background-color: var(--border-color);
+        }
+
+        .nav-btn.active {
+            color: #ffffff;
+            background-color: var(--accent-blue);
+        }
+
+        /* Container & Sections */
+        .app-container {
+            flex: 1;
+            display: flex;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .view-section {
+            display: none;
+            width: 100%;
+            height: 100%;
+        }
+
+        .view-section.active {
+            display: flex;
+        }
+
+        /* General Layout Elements */
+        .sidebar {
+            width: 310px;
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+            gap: 1rem;
+            overflow-y: auto;
+        }
+
+        .main-canvas-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background-color: #0B1120;
+            background-image: radial-gradient(var(--border-color) 1px, transparent 0);
+            background-size: 20px 20px;
+            overflow: hidden;
+        }
+
+        .right-panel {
+            width: 320px;
+            background-color: var(--bg-sidebar);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+            gap: 1rem;
+            overflow-y: auto;
+        }
+
+        /* Controls & Buttons */
+        .btn {
+            background-color: var(--bg-card);
+            color: var(--text-light);
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+        }
+
+        .btn-primary {
+            background-color: var(--accent-blue);
+            border-color: var(--accent-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563eb;
+            color: white;
+        }
+
+        .btn-danger {
+            background-color: var(--accent-red);
+            border-color: var(--accent-red);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #dc2626;
+            color: white;
+        }
+
+        /* Gate Palette */
+        .palette-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+        }
+
+        .palette-item {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.6rem;
+            cursor: grab;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .palette-item:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+        }
+
+        /* Canvas SVG */
+        #circuit-svg {
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            background-color: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            border-right: 1px solid var(--border-color);
+            padding-right: 0.5rem;
+            margin-right: 0.2rem;
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: absolute;
+            bottom: 1rem;
+            right: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            z-index: 1000;
+        }
+
+        .toast {
+            background-color: var(--bg-card);
+            border-left: 4px solid var(--accent-blue);
+            color: var(--text-light);
+            padding: 0.75rem 1rem;
+            border-radius: 4px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.5);
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            animation: slideIn 0.3s forwards;
+        }
+
+        .toast.error { border-left-color: var(--accent-red); }
+        .toast.success { border-left-color: var(--accent-emerald); }
+        .toast.warning { border-left-color: var(--accent-amber); }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Truth Table */
+        .truth-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+
+        .truth-table th, .truth-table td {
+            border: 1px solid var(--border-color);
+            padding: 0.4rem;
+        }
+
+        .truth-table th {
+            background-color: var(--bg-card);
+            color: var(--accent-blue);
+        }
+
+        .truth-table tr.active-row {
+            background-color: rgba(59, 130, 246, 0.25);
+            font-weight: bold;
+        }
+
+        /* Adder / Arithmetic Styles */
+        .adder-container {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .adder-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.25rem;
+        }
+
+        .adder-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .switch-group {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            background: rgba(15, 23, 42, 0.6);
+            padding: 0.3rem 0.6rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .switch-btn {
+            width: 36px;
+            height: 20px;
+            background-color: var(--wire-low);
+            border-radius: 10px;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .switch-btn.on {
+            background-color: var(--accent-emerald);
+        }
+
+        .switch-btn::after {
+            content: '';
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background-color: white;
+            top: 3px;
+            left: 3px;
+            transition: transform 0.2s;
+        }
+
+        .switch-btn.on::after {
+            transform: translateX(16px);
+        }
+
+        /* Steps & Register Tables */
+        .step-box {
+            background-color: #0f172a;
+            border: 1px solid var(--accent-blue);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .register-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0.75rem;
+            font-size: 0.85rem;
+        }
+
+        .register-table th, .register-table td {
+            border: 1px solid var(--border-color);
+            padding: 0.5rem;
+            text-anchor: center;
+            text-align: center;
+        }
+
+        .register-table th {
+            background-color: #1e293b;
+            color: var(--accent-blue);
+        }
+
+        /* Teacher Mode High Contrast Override */
+        body.teacher-mode {
+            --bg-main: #020617;
+            --bg-card: #0f172a;
+            --text-light: #ffffff;
+            font-size: 1.1rem;
+        }
+
+        body.teacher-mode .btn {
+            padding: 0.75rem 1.25rem;
+            font-size: 1rem;
+        }
+
+        body.teacher-mode .sidebar, body.teacher-mode .right-panel {
+            width: 380px;
+        }
+
+        /* SVG Components & ANIMATIONS */
+        .gate-body {
+            fill: #1e293b;
+            stroke: #38bdf8;
+            stroke-width: 2;
+            transition: all 0.3s ease;
+        }
+
+        .gate-body.glowing {
+            fill: #0c4a6e;
+            stroke: #7dd3fc;
+            filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.8));
+        }
+
+        .port-circle {
+            fill: #64748b;
+            stroke: #ffffff;
+            stroke-width: 1.5;
+            cursor: pointer;
+            transition: r 0.2s, fill 0.2s;
+        }
+
+        .port-circle:hover {
+            r: 6;
+            fill: var(--accent-blue);
+        }
+
+        .wire-path {
+            fill: none;
+            stroke-width: 4;
+            stroke-linecap: round;
+            transition: stroke 0.3s;
+            cursor: pointer;
+        }
+
+        .wire-path.high { 
+            stroke: var(--wire-high); 
+        }
+        .wire-path.low { 
+            stroke: var(--wire-low); 
+        }
+        .wire-path.undef { 
+            stroke: var(--wire-undef); 
+            stroke-dasharray: 4; 
+        }
+        
+        .wire-animated {
+            stroke-dasharray: 8 8;
+            animation: dashFlow 0.6s linear infinite;
+        }
+        
+        .wire-animated.reverse {
+            animation: dashFlowRev 0.6s linear infinite;
+        }
+
+        @keyframes dashFlow {
+            from { stroke-dashoffset: 16; }
+            to { stroke-dashoffset: 0; }
+        }
+        
+        @keyframes dashFlowRev {
+            from { stroke-dashoffset: 0; }
+            to { stroke-dashoffset: 16; }
+        }
+
+        @keyframes carryFlow {
+            0% { stroke-dashoffset: 12; opacity: 0.4; }
+            50% { opacity: 1; }
+            100% { stroke-dashoffset: 0; opacity: 0.4; }
+        }
+
+        .carry-arrow-path {
+            fill: none;
+            stroke: var(--accent-amber);
+            stroke-width: 2.5;
+            stroke-dasharray: 6 4;
+            animation: carryFlow 1s linear infinite;
+        }
+
+        .gate-label {
+            fill: var(--text-light);
+            font-size: 14px;
+            font-weight: bold;
+            text-anchor: middle;
+            user-select: none;
+            pointer-events: none;
+        }
+
+        .interactive-svg-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            background-color: var(--bg-main);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+        }
+        /* ===== LUYỆN TẬP (phạm vi .pr-*) ===== */
+        .pr-wrap{max-width:900px;margin:0 auto;width:100%;display:flex;flex-direction:column;gap:1rem}
+        .pr-card{background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;padding:1.5rem}
+        .pr-field{display:flex;flex-direction:column;gap:.35rem;margin-bottom:1rem}
+        .pr-field label{font-size:.85rem;color:var(--text-muted);font-weight:600}
+        .pr-input{background:var(--bg-main);border:1px solid var(--border-color);color:var(--text-light);padding:.65rem .8rem;border-radius:6px;font-size:1rem;width:100%}
+        .pr-input:focus{outline:2px solid var(--accent-blue);border-color:transparent}
+        .pr-msg{padding:.7rem 1rem;border-radius:6px;border-left:4px solid var(--accent-amber);background:rgba(245,158,11,.1);font-size:.9rem;margin-top:.75rem}
+        .pr-msg.err{border-color:var(--accent-red);background:rgba(239,68,68,.1)}.pr-msg.ok{border-color:var(--accent-emerald);background:rgba(16,185,129,.1)}
+        .pr-opt{display:flex;gap:.75rem;align-items:flex-start;width:100%;text-align:left;background:var(--bg-main);border:1px solid var(--border-color);color:var(--text-light);padding:.8rem 1rem;border-radius:8px;cursor:pointer;font-size:1rem;margin-bottom:.6rem}
+        .pr-opt:hover{border-color:var(--accent-blue)}.pr-opt.sel{border-color:var(--accent-blue);background:rgba(59,130,246,.18)}
+        .pr-opt b{min-width:1.6rem;color:var(--accent-blue)}
+        .pr-nav{display:flex;flex-wrap:wrap;gap:.4rem;margin:.75rem 0}
+        .pr-chip{width:2.3rem;height:2.3rem;border-radius:6px;border:1px solid var(--accent-amber);background:transparent;color:var(--text-light);cursor:pointer;font-weight:600}
+        .pr-chip.done{border-color:var(--accent-emerald);background:rgba(16,185,129,.2)}.pr-chip.cur{outline:2px solid var(--accent-blue)}
+        .pr-bar{height:8px;background:var(--bg-main);border-radius:4px;overflow:hidden}.pr-bar>div{height:100%;background:var(--accent-blue);transition:width .2s}
+        .pr-row{display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;justify-content:space-between}
+        .pr-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.75rem;margin:1rem 0}
+        .pr-stat{background:var(--bg-main);border:1px solid var(--border-color);border-radius:8px;padding:.8rem;text-align:center}.pr-stat b{display:block;font-size:1.6rem}
+        .pr-rev{border-left:4px solid var(--accent-red);padding:.75rem 1rem;margin-bottom:.75rem;background:var(--bg-main);border-radius:6px}.pr-rev.ok{border-color:var(--accent-emerald)}.pr-rev.na{border-color:var(--accent-amber)}
+        .pr-tbl{width:100%;border-collapse:collapse;font-size:.85rem}.pr-tbl th,.pr-tbl td{border:1px solid var(--border-color);padding:.45rem .6rem;text-align:left}.pr-tbl th{background:var(--bg-main)}
+        .pr-tbl tr.clk{cursor:pointer}.pr-tbl tr.clk:hover{background:rgba(59,130,246,.12)}
+        @media (max-width:768px){header{flex-direction:column;align-items:stretch;gap:.5rem}nav{overflow-x:auto;padding-bottom:.25rem}.nav-btn{white-space:nowrap}.pr-card{padding:1rem}}
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header>
+        <div class="logo">
+            <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+            <span>LogicCircuit-Sim</span>
+        </div>
+        <nav>
+            <button class="nav-btn active" onclick="switchView('home')">🏠 Trang chủ</button>
+            <button class="nav-btn" onclick="switchView('gatelab')">🧪 Cổng Logic</button>
+            <button class="nav-btn" onclick="switchView('designer')">🎨 Trình Thiết Kế</button>
+            <button class="nav-btn" onclick="switchView('adder')">➕ Bộ Cộng & Số Học</button>
+            <button class="nav-btn" onclick="switchView('practice')">📝 Luyện Tập</button>
+            <button class="nav-btn" onclick="switchView('teacher')">👨‍🏫 Giảng Dạy</button>
+            <button class="nav-btn" onclick="switchView('help')">📖 Hướng Dẫn</button>
+        </nav>
+    </header>
+
+    <div class="app-container">
+
+        <!-- 1. HOME VIEW -->
+        <section id="view-home" class="view-section active" style="padding: 2rem; overflow-y: auto; flex-direction: column; gap: 1.5rem;">
+            <div style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid var(--border-color); padding: 2.5rem; border-radius: 12px;">
+                <h1 style="color: var(--accent-blue); font-size: 2.2rem; margin-bottom: 0.75rem;">LogicCircuit-Sim: Mô Phỏng Mạch Logic & Số Học Nhị Phân</h1>
+                <p style="font-size: 1.1rem; color: var(--text-muted); max-width: 900px; line-height: 1.6;">
+                    Phần mềm hỗ trợ học tập và giảng dạy môn <strong>Tin học 11 (Bộ sách GDPT 2018 - Bài 4: Bên trong máy tính)</strong>.
+                    Giúp học sinh trực quan hóa cách các cổng logic kết hợp để thực hiện các phép toán nhị phân (Cộng, Trừ Bù 2, Nhân/Chia tuần tự) và cấu tạo nên bộ vi xử lý (CPU/ALU) trong máy tính.
+                </p>
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button class="btn btn-primary" onclick="switchView('gatelab')">Khám Phá Cổng Logic</button>
+                    <button class="btn" onclick="switchView('adder')">Thử Nghiệm Bộ Cộng & Phép Toán Số Học</button>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem;">
+                <div class="adder-card">
+                    <h3 style="color: var(--accent-emerald); margin-bottom: 0.5rem;">🧪 Phòng Thí Nghiệm Cổng Logic</h3>
+                    <p style="font-size: 0.9rem; color: var(--text-muted);">Khám phá 7 cổng logic cơ bản (AND, OR, NOT, NAND, NOR, XOR, XNOR) với công tắc tương tác và bảng chân trị tự động.</p>
+                </div>
+                <div class="adder-card">
+                    <h3 style="color: var(--accent-blue); margin-bottom: 0.5rem;">🎨 Trình Thiết Kế Mạch Tương Tác</h3>
+                    <p style="font-size: 0.9rem; color: var(--text-muted);">Kéo thả linh kiện, nối dây tín hiệu, tích hợp mạch mẫu Half/Full Adder trực quan và tự động xuất bảng chân trị.</p>
+                </div>
+                <div class="adder-card">
+                    <h3 style="color: var(--accent-amber); margin-bottom: 0.5rem;">➕ Mạch Cộng & Số Học Nâng Cao</h3>
+                    <p style="font-size: 0.9rem; color: var(--text-muted);">Mô phỏng Bộ cộng nhiều bit (4-bit/8-bit), Phép trừ mã bù 2, cùng thuật toán Phép nhân (Shift-and-Add) & Phép chia (Restoring Division) tuần tự.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. GATE LAB VIEW -->
+        <section id="view-gatelab" class="view-section">
+            <div class="sidebar">
+                <h3>Danh Sách Cổng Logic</h3>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;" id="gate-lab-list"></div>
+            </div>
+
+            <div class="main-canvas-area" style="padding: 2rem; display: flex; flex-direction: column; gap: 1.5rem; justify-content: center; align-items: center; overflow-y:auto;">
+                <div id="gate-lab-visual" class="interactive-svg-container"></div>
+                <div id="gate-lab-info" class="adder-card" style="width: 100%; max-width: 700px;"></div>
+            </div>
+
+            <div class="right-panel">
+                <h3>Bảng Chân Trị (Truth Table)</h3>
+                <div id="gate-lab-truth-table"></div>
+            </div>
+        </section>
+
+        <!-- 3. CIRCUIT DESIGNER VIEW -->
+        <section id="view-designer" class="view-section">
+            <div class="sidebar">
+                <h3>Thư Viện Linh Kiện</h3>
+                <p style="font-size: 0.8rem; color: var(--text-muted);">Nhấp để thêm linh kiện vào bảng thiết kế:</p>
+                <div class="palette-grid">
+                    <div class="palette-item" onclick="addDesignerComponent('SWITCH')"><span>🔌 Đầu Vào (Switch)</span></div>
+                    <div class="palette-item" onclick="addDesignerComponent('LED')"><span>💡 Đầu Ra (LED)</span></div>
+                    <div class="palette-item" onclick="addDesignerComponent('AND')"><span>AND</span></div>
+                    <div class="palette-item" onclick="addDesignerComponent('OR')"><span>OR</span></div>
+                    <div class="palette-item" onclick="addDesignerComponent('NOT')"><span>NOT</span></div>
+                    <div class="palette-item" onclick="addDesignerComponent('NAND')"><span>NAND</span></div>
+                    <div class="palette-item" onclick="addDesignerComponent('NOR')"><span>NOR</span></div>
+                    <div class="palette-item" onclick="addDesignerComponent('XOR')"><span>XOR</span></div>
+                    <div class="palette-item" onclick="addDesignerComponent('XNOR')"><span>XNOR</span></div>
+                </div>
+
+                <hr style="border-color: var(--border-color); margin: 0.5rem 0;">
+                <h3>Mạch Mẫu</h3>
+                <button class="btn" onclick="loadPresetCircuit('HALF_ADDER')">Bộ Cộng Bán Phần (Half Adder)</button>
+                <button class="btn" onclick="loadPresetCircuit('FULL_ADDER')" style="margin-top: 0.4rem;">Bộ Cộng Toàn Phần (Full Adder)</button>
+            </div>
+
+            <div class="main-canvas-area">
+                <div class="toolbar">
+                    <div class="toolbar-group">
+                        <button class="btn" onclick="clearCircuit()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> Xóa Tất Cả</button>
+                    </div>
+                    <div class="toolbar-group">
+                        <button class="btn" onclick="generateCircuitTruthTable()">📊 Tự Động Sinh Bảng Chân Trị</button>
+                    </div>
+                    <span id="designer-status" style="font-size: 0.85rem; color: var(--accent-emerald); margin-left: auto;">Trạng thái: Hoạt động</span>
+                </div>
+
+                <svg id="circuit-svg"></svg>
+                <div class="toast-container" id="toast-area"></div>
+            </div>
+
+            <div class="right-panel">
+                <h3>Thuộc Tính Linh Kiện</h3>
+                <div id="inspector-panel" style="font-size: 0.85rem; color: var(--text-muted);">
+                    Nhấp vào linh kiện hoặc dây nối để xem và chỉnh sửa thông số.
+                </div>
+                <hr style="border-color: var(--border-color); margin: 0.5rem 0;">
+                <h3>Bảng Chân Trị Mạch Thiết Kế</h3>
+                <div id="custom-truth-table-container" style="overflow-x: auto;">
+                    <p style="font-size: 0.8rem; color: var(--text-muted);">Chưa tạo bảng chân trị.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. ADDER & ARITHMETIC LAB VIEW -->
+        <section id="view-adder" class="view-section">
+            <div class="sidebar">
+                <h3>Mô-đun Số Học Nhị Phân</h3>
+                <button class="btn btn-primary" onclick="switchAdderModule('half')" id="btn-mod-half">1. Bộ Cộng Bán Phần (Half Adder)</button>
+                <button class="btn" onclick="switchAdderModule('full')" id="btn-mod-full" style="margin-top: 0.3rem;">2. Bộ Cộng Toàn Phần (Full Adder)</button>
+                <button class="btn" onclick="switchAdderModule('multibit')" id="btn-mod-multibit" style="margin-top: 0.3rem;">3. Bộ Cộng Nhiều Bit (4/8-bit)</button>
+
+                <hr style="border-color: var(--border-color); margin: 0.5rem 0;">
+                <h3 style="color: var(--accent-amber);">Nâng Cao (CPU ALU)</h3>
+                <button class="btn" onclick="switchAdderModule('sub')" id="btn-mod-sub" style="margin-top: 0.3rem;">4. Phép Trừ Nhị Phân (Bù 2)</button>
+                <button class="btn" onclick="switchAdderModule('mul')" id="btn-mod-mul" style="margin-top: 0.3rem;">5. Phép Nhân Tuần Tự (Shift-Add)</button>
+                <button class="btn" onclick="switchAdderModule('div')" id="btn-mod-div" style="margin-top: 0.3rem;">6. Phép Chia Tuần Tự (Restoring)</button>
+
+                <hr style="border-color: var(--border-color); margin: 0.5rem 0;">
+                <div id="adder-theory-box" style="font-size: 0.85rem; line-height: 1.5; color: var(--text-muted);"></div>
+            </div>
+
+            <div class="adder-container">
+                <div id="adder-interactive-area" class="adder-card"></div>
+
+                <div class="adder-card" id="step-sequencer-card">
+                    <h3>Chế Độ Mô Phỏng Tuần Tự Từng Bước (Step-by-Step)</h3>
+                    <div class="adder-controls" style="margin-top: 0.75rem;">
+                        <button class="btn" onclick="adderStepPrev()">⬅ Bước Trước</button>
+                        <button class="btn btn-primary" onclick="adderStepNext()">Bước Tiếp Theo ➡️</button>
+                        <button class="btn" onclick="adderResetSteps()">🔄 Đặt Lại</button>
+                        <span id="step-counter" style="font-weight: bold; color: var(--accent-blue);">Bước 1 / 5</span>
+                    </div>
+                    <div id="step-description-box" class="step-box"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. TEACHER MODE VIEW -->
+        <section id="view-teacher" class="view-section" style="padding: 2rem; overflow-y: auto; flex-direction: column; gap: 1.5rem;">
+            <div class="adder-card" style="border-left: 6px solid var(--accent-blue);">
+                <h2>👨‍🏫 Chế Độ Trình Chiếu Dành Cho Giáo Viên</h2>
+                <p style="color: var(--text-muted); margin-top: 0.5rem;">
+                    Giao diện được tối ưu hóa tương phản cao, cỡ chữ lớn phục vụ trình chiếu trên máy chiếu hoặc màn hình tương tác tại lớp học.
+                </p>
+                <div style="margin-top: 1rem; display: flex; gap: 1rem;">
+                    <button class="btn btn-primary" onclick="toggleTeacherModeUI()">🎨 Bật / Tắt Tương Phản Lớn</button>
+                    <button class="btn" onclick="loadTeacherPreset('full')">🚀 Trình Giảng: Mạch Full Adder</button>
+                </div>
+            </div>
+
+            <div class="adder-card">
+                <h3>Gợi Ý Câu Hỏi Mở Khám Phá Cho Học Sinh (GDPT 2018)</h3>
+                <ul style="margin-left: 1.5rem; margin-top: 0.75rem; color: var(--text-muted); line-height: 1.8;">
+                    <li><strong>Câu hỏi 1:</strong> Tại sao trong bộ cộng bán phần (Half Adder), bit tổng S lại sử dụng cổng XOR còn bit nhớ Carry lại dùng cổng AND?</li>
+                    <li><strong>Câu hỏi 2:</strong> Cách mạch điện thực hiện phép trừ $A - B$ bằng cách biến đổi thành phép cộng với Mã bù 2 $A + (\overline{B} + 1)$?</li>
+                    <li><strong>Câu hỏi 3:</strong> Nguyên lý dịch bit (Shift Right/Left) đóng vai trò gì trong bộ nhân và bộ chia nhị phân phần cứng của CPU?</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- 6. HELP VIEW -->
+        <section id="view-help" class="view-section" style="padding: 2rem; overflow-y: auto; flex-direction: column; gap: 1.5rem;">
+            <div class="adder-card">
+                <h2>📖 Hướng Dẫn Sử Dụng LogicCircuit-Sim</h2>
+                <div style="margin-top: 1rem; line-height: 1.7; color: var(--text-muted);">
+                    <h3 style="color: var(--accent-blue); margin-top: 1rem;">1. Phòng thí nghiệm Cổng Logic</h3>
+                    <p>Chọn cổng bất kỳ từ danh sách bên trái. Bật/Tắt công tắc A, B để quan sát đầu ra Y và dòng màu tín hiệu đổi theo thời gian thực.</p>
+
+                    <h3 style="color: var(--accent-blue); margin-top: 1rem;">2. Trình Thiết Kế Mạch</h3>
+                    <p>Nhấp linh kiện ở thư viện để đưa vào bảng. Để nối dây: Nhấp vào chân <strong>Đầu Ra (Output)</strong> của cổng thứ nhất, sau đó nhấp vào chân <strong>Đầu Vào (Input)</strong> của cổng thứ hai.</p>
+
+                    <h3 style="color: var(--accent-blue); margin-top: 1rem;">3. Quy Tắc Màu Tín Hiệu</h3>
+                    <ul>
+                        <li><strong style="color: var(--accent-emerald);">Màu Xanh Lá (1):</strong> Mức logic Cực cao (HIGH / True / 1).</li>
+                        <li><strong style="color: var(--wire-low);">Màu Xám (0):</strong> Mức logic Cực thấp (LOW / False / 0).</li>
+                        <li><strong style="color: var(--accent-amber);">Màu Cam (X):</strong> Chưa xác định / Khuyết đầu vào / Vòng lặp sai.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- 7. PRACTICE VIEW (Luyện Tập) -->
+        <section id="view-practice" class="view-section" style="padding: 2rem; overflow-y: auto;">
+          <div class="pr-wrap" id="pr-root"></div>
+        </section>
+
+        <!-- 8. TEACHER RESULTS VIEW (cần đăng nhập giáo viên) -->
+        <section id="view-results" class="view-section" style="padding: 2rem; overflow-y: auto;">
+          <div class="pr-wrap" id="pr-teacher-root" style="max-width:1200px"></div>
+        </section>
+
+    </div>
+
+    <!-- ===== CẤU HÌNH SUPABASE: điền 2 giá trị bên dưới (Project URL và Publishable/anon key). KHÔNG dán service_role/secret key ===== -->
+    <script>window.PRACTICE_CONFIG = { SUPABASE_URL: '', SUPABASE_KEY: '' };</script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+    <script>
+        /* ==========================================================================
+           LOGIC ENGINE & CORE DATA STRUCTURES
+           ========================================================================== */
+
+        const LogicEngine = {
+            AND: (a, b) => (a === 1 && b === 1) ? 1 : (a === 0 || b === 0) ? 0 : null,
+            OR: (a, b) => (a === 1 || b === 1) ? 1 : (a === 0 && b === 0) ? 0 : null,
+            NOT: (a) => (a === 1) ? 0 : (a === 0) ? 1 : null,
+            NAND: (a, b) => {
+                const res = LogicEngine.AND(a, b);
+                return res === null ? null : (res === 1 ? 0 : 1);
+            },
+            NOR: (a, b) => {
+                const res = LogicEngine.OR(a, b);
+                return res === null ? null : (res === 1 ? 0 : 1);
+            },
+            XOR: (a, b) => (a === null || b === null) ? null : (a !== b ? 1 : 0),
+            XNOR: (a, b) => {
+                const res = LogicEngine.XOR(a, b);
+                return res === null ? null : (res === 1 ? 0 : 1);
+            }
+        };
+
+        const GATE_METADATA = {
+            AND: { name: 'Cổng AND (Phép Nhân Logic)', expr: 'Y = A · B', desc: 'Đầu ra Y bằng 1 khi và chỉ khi TẤT CẢ đầu vào bằng 1.' },
+            OR: { name: 'Cổng OR (Phép Cộng Logic)', expr: 'Y = A + B', desc: 'Đầu ra Y bằng 1 khi CÓ ÍT NHẤT MỘT đầu vào bằng 1.' },
+            NOT: { name: 'Cổng NOT (Phép Phủ Định)', expr: "Y = A' (hoặc ¬A)", desc: 'Đầu ra Y luôn ngược trạng thái với đầu vào A.' },
+            NAND: { name: 'Cổng NAND (NOT-AND)', expr: "Y = (A · B)'", desc: 'Đầu ra Y bằng 0 chỉ khi tất cả đầu vào bằng 1 (Ngược với AND).' },
+            NOR: { name: 'Cổng NOR (NOT-OR)', expr: "Y = (A + B)'", desc: 'Đầu ra Y bằng 1 chỉ khi tất cả đầu vào bằng 0 (Ngược với OR).' },
+            XOR: { name: 'Cổng XOR (HOẶC Loại Trừ)', expr: 'Y = A ⊕ B', desc: 'Đầu ra Y bằng 1 khi hai đầu vào CÓ GIÁ TRỊ KHÁC NHAU.' },
+            XNOR: { name: 'Cổng XNOR (Cổng Tương Đương)', expr: "Y = (A ⊕ B)'", desc: 'Đầu ra Y bằng 1 khi hai đầu vào CÓ GIÁ TRỊ GIỐNG NHAU.' }
+        };
+
+        /* ==========================================================================
+           VIEW NAVIGATION CONTROLLER
+           ========================================================================== */
+        function switchView(viewId) {
+            document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+
+            const targetSection = document.getElementById(`view-${viewId}`);
+            if (targetSection) targetSection.classList.add('active');
+
+            const navBtn = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.getAttribute('onclick').includes(viewId));
+            if (navBtn) navBtn.classList.add('active');
+
+            if (viewId === 'gatelab') initGateLab();
+            if (viewId === 'adder') renderAdderModule();
+        }
+
+        /* ==========================================================================
+           FEATURE 1: LOGIC GATE LAB CONTROLLER
+           ========================================================================== */
+        let currentGateLab = 'AND';
+        let gateLabInputs = { A: 0, B: 0 };
+
+        function initGateLab() {
+            const listContainer = document.getElementById('gate-lab-list');
+            listContainer.innerHTML = '';
+
+            Object.keys(GATE_METADATA).forEach(gateKey => {
+                const btn = document.createElement('button');
+                btn.className = `btn ${currentGateLab === gateKey ? 'btn-primary' : ''}`;
+                btn.innerText = gateKey;
+                btn.style.justifyContent = 'flex-start';
+                btn.onclick = () => {
+                    currentGateLab = gateKey;
+                    initGateLab();
+                };
+                listContainer.appendChild(btn);
+            });
+
+            renderGateLabVisual();
+        }
+
+        function toggleGateLabInput(inputKey) {
+            gateLabInputs[inputKey] = gateLabInputs[inputKey] === 1 ? 0 : 1;
+            renderGateLabVisual();
+        }
+
+        function renderGateLabVisual() {
+            const visualArea = document.getElementById('gate-lab-visual');
+            const infoArea = document.getElementById('gate-lab-info');
+            const meta = GATE_METADATA[currentGateLab];
+            const isNot = currentGateLab === 'NOT';
+
+            let outputVal = isNot ? LogicEngine.NOT(gateLabInputs.A) : LogicEngine[currentGateLab](gateLabInputs.A, gateLabInputs.B);
+
+            const wireClassA = gateLabInputs.A ? 'wire-path high wire-animated' : 'wire-path low';
+            const wireClassB = gateLabInputs.B ? 'wire-path high wire-animated' : 'wire-path low';
+            const wireClassOut = outputVal ? 'wire-path high wire-animated' : 'wire-path low';
+            const gateGlow = outputVal ? 'glowing' : '';
+
+            let svgContent = `
+                <svg width="400" height="200" viewBox="0 0 400 200">
+                    <path d="M 60 70 L 160 70" class="${wireClassA}"/>
+            `;
+            
+            if(!isNot) {
+                svgContent += `
+                    <path d="M 60 130 L 160 130" class="${wireClassB}"/>
+                `;
+            } else {
+                svgContent = `
+                <svg width="400" height="200" viewBox="0 0 400 200">
+                    <path d="M 60 100 L 160 100" class="${wireClassA}"/>
+                `;
+            }
+
+            svgContent += `
+                    <path d="M 240 100 L 330 100" class="${wireClassOut}"/>
+                    <path d="M 160 50 L 210 50 C 240 50 240 150 210 150 L 160 150 Z" class="gate-body ${gateGlow}"/>
+                    <text x="195" y="105" class="gate-label">${currentGateLab}</text>
+                    <circle cx="340" cy="100" r="16" fill="${outputVal ? '#10b981' : '#1e293b'}" stroke="#ffffff" stroke-width="2" style="${outputVal ? 'filter: drop-shadow(0 0 12px #10b981);' : ''}"/>
+                    <text x="340" y="105" class="gate-label" style="font-size: 12px; fill: white;">Y</text>
+                </svg>
+            `;
+
+            let htmlContent = `
+                <div style="display: flex; align-items: center; position: relative;">
+                    <div style="position: absolute; left: -10px; top: ${isNot ? '80px' : '40px'}; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; z-index: 10;">
+                        <span style="font-weight: bold; font-size: 14px; color: ${gateLabInputs.A ? 'var(--accent-emerald)' : 'var(--text-muted)'}">A: ${gateLabInputs.A}</span>
+                        <div class="switch-btn ${gateLabInputs.A ? 'on' : ''}" onclick="toggleGateLabInput('A')"></div>
+                    </div>
+            `;
+
+            if(!isNot) {
+                htmlContent += `
+                    <div style="position: absolute; left: -10px; top: 110px; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; z-index: 10;">
+                        <span style="font-weight: bold; font-size: 14px; color: ${gateLabInputs.B ? 'var(--accent-emerald)' : 'var(--text-muted)'}">B: ${gateLabInputs.B}</span>
+                        <div class="switch-btn ${gateLabInputs.B ? 'on' : ''}" onclick="toggleGateLabInput('B')"></div>
+                    </div>
+                `;
+            }
+
+            htmlContent += `
+                    ${svgContent}
+                </div>
+            `;
+
+            visualArea.innerHTML = htmlContent;
+
+            infoArea.innerHTML = `
+                <h3 style="color: var(--accent-blue);">${meta.name}</h3>
+                <p style="margin-top: 0.4rem; font-size: 1.1rem; font-weight: bold; color: var(--accent-emerald);">Biểu thức Boolean: ${meta.expr}</p>
+                <p style="margin-top: 0.5rem; color: var(--text-muted); font-size: 0.9rem; line-height: 1.5;">${meta.desc}</p>
+            `;
+
+            renderGateLabTruthTable();
+        }
+
+        function renderGateLabTruthTable() {
+            const tableContainer = document.getElementById('gate-lab-truth-table');
+            const isNot = currentGateLab === 'NOT';
+
+            let rowsHTML = '';
+            if (isNot) {
+                [0, 1].forEach(a => {
+                    const out = LogicEngine.NOT(a);
+                    rowsHTML += `<tr class="${gateLabInputs.A === a ? 'active-row' : ''}"><td>${a}</td><td>${out}</td></tr>`;
+                });
+                tableContainer.innerHTML = `<table class="truth-table"><thead><tr><th>A</th><th>Y</th></tr></thead><tbody>${rowsHTML}</tbody></table>`;
+            } else {
+                [[0,0], [0,1], [1,0], [1,1]].forEach(([a, b]) => {
+                    const out = LogicEngine[currentGateLab](a, b);
+                    rowsHTML += `<tr class="${(gateLabInputs.A === a && gateLabInputs.B === b) ? 'active-row' : ''}"><td>${a}</td><td>${b}</td><td>${out}</td></tr>`;
+                });
+                tableContainer.innerHTML = `<table class="truth-table"><thead><tr><th>A</th><th>B</th><th>Y</th></tr></thead><tbody>${rowsHTML}</tbody></table>`;
+            }
+        }
+
+        /* ==========================================================================
+           FEATURE 2: VISUAL CIRCUIT DESIGNER
+           ========================================================================== */
+        let designerComponents = [];
+        let designerWires = [];
+        let selectedPort = null;
+        let draggingComponent = null;
+        let dragOffset = { x: 0, y: 0 };
+
+        function addDesignerComponent(type) {
+            const id = 'comp_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+            const comp = {
+                id: id,
+                type: type,
+                x: 100 + Math.random() * 150,
+                y: 100 + Math.random() * 150,
+                state: type === 'SWITCH' ? 0 : null,
+                inputs: [],
+                outputs: []
+            };
+
+            if (type === 'SWITCH') {
+                comp.outputs.push({ id: id + '_out', name: 'Y', val: 0 });
+            } else if (type === 'LED') {
+                comp.inputs.push({ id: id + '_in', name: 'A', val: null });
+            } else if (type === 'NOT') {
+                comp.inputs.push({ id: id + '_inA', name: 'A', val: null });
+                comp.outputs.push({ id: id + '_out', name: 'Y', val: null });
+            } else {
+                comp.inputs.push({ id: id + '_inA', name: 'A', val: null });
+                comp.inputs.push({ id: id + '_inB', name: 'B', val: null });
+                comp.outputs.push({ id: id + '_out', name: 'Y', val: null });
+            }
+
+            designerComponents.push(comp);
+            reevaluateCircuit();
+            renderDesignerSVG();
+            showToast(`Đã thêm linh kiện ${type}`, 'success');
+        }
+
+        function clearCircuit() {
+            designerComponents = [];
+            designerWires = [];
+            selectedPort = null;
+            reevaluateCircuit();
+            renderDesignerSVG();
+            showToast('Đã xóa toàn bộ mạch thiết kế', 'warning');
+        }
+
+        function reevaluateCircuit() {
+            designerComponents.forEach(c => {
+                c.inputs.forEach(inp => inp.val = null);
+            });
+
+            let changed = true;
+            let passes = 0;
+            const maxPasses = 30;
+
+            while (changed && passes < maxPasses) {
+                changed = false;
+                passes++;
+
+                designerWires.forEach(w => {
+                    const srcComp = designerComponents.find(c => c.id === w.fromCompId);
+                    const targetComp = designerComponents.find(c => c.id === w.toCompId);
+
+                    if (srcComp && targetComp) {
+                        const srcPort = srcComp.outputs.find(p => p.id === w.fromPortId);
+                        const targetPort = targetComp.inputs.find(p => p.id === w.toPortId);
+
+                        if (srcPort && targetPort) {
+                            if (targetPort.val !== srcPort.val) {
+                                targetPort.val = srcPort.val;
+                                w.state = srcPort.val;
+                                changed = true;
+                            }
+                        }
+                    }
+                });
+
+                designerComponents.forEach(c => {
+                    if (c.type === 'SWITCH') {
+                        c.outputs[0].val = c.state;
+                    } else if (c.type === 'LED') {
+                        c.state = c.inputs[0] ? c.inputs[0].val : null;
+                    } else if (c.type === 'NOT') {
+                        const inVal = c.inputs[0].val;
+                        const outVal = LogicEngine.NOT(inVal);
+                        if (c.outputs[0].val !== outVal) {
+                            c.outputs[0].val = outVal;
+                            changed = true;
+                        }
+                    } else if (LogicEngine[c.type]) {
+                        const inA = c.inputs[0] ? c.inputs[0].val : null;
+                        const inB = c.inputs[1] ? c.inputs[1].val : null;
+                        const outVal = LogicEngine[c.type](inA, inB);
+                        if (c.outputs[0].val !== outVal) {
+                            c.outputs[0].val = outVal;
+                            changed = true;
+                        }
+                    }
+                });
+            }
+        }
+
+        function renderDesignerSVG() {
+            const svg = document.getElementById('circuit-svg');
+            svg.innerHTML = '';
+
+            designerWires.forEach(w => {
+                const srcComp = designerComponents.find(c => c.id === w.fromCompId);
+                const targetComp = designerComponents.find(c => c.id === w.toCompId);
+
+                if (srcComp && targetComp) {
+                    const srcPortIdx = srcComp.outputs.findIndex(p => p.id === w.fromPortId);
+                    const targetPortIdx = targetComp.inputs.findIndex(p => p.id === w.toPortId);
+
+                    const x1 = srcComp.x + 80;
+                    const y1 = srcComp.y + 20 + srcPortIdx * 15;
+                    const x2 = targetComp.x;
+                    const y2 = targetComp.y + 20 + targetPortIdx * 15;
+
+                    const dx = Math.abs(x2 - x1) / 2;
+                    const pathD = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
+
+                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    path.setAttribute('d', pathD);
+                    path.setAttribute('class', `wire-path ${w.state === 1 ? 'high wire-animated' : w.state === 0 ? 'low' : 'undef'}`);
+                    path.onclick = (e) => {
+                        e.stopPropagation();
+                        designerWires = designerWires.filter(wire => wire.id !== w.id);
+                        reevaluateCircuit();
+                        renderDesignerSVG();
+                        showToast('Đã xóa dây nối', 'warning');
+                    };
+                    svg.appendChild(path);
+                }
+            });
+
+            designerComponents.forEach(c => {
+                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                g.setAttribute('transform', `translate(${c.x}, ${c.y})`);
+                g.style.cursor = 'move';
+
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('width', '80');
+                rect.setAttribute('height', '50');
+                rect.setAttribute('rx', '6');
+                rect.setAttribute('class', 'gate-body');
+
+                if (c.type === 'SWITCH' || c.type === 'LED') {
+                    rect.style.fill = c.state === 1 ? '#065f46' : '#1e293b';
+                }
+
+                g.appendChild(rect);
+
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', '40');
+                text.setAttribute('y', '30');
+                text.setAttribute('class', 'gate-label');
+                text.textContent = c.type === 'SWITCH' ? (c.state ? 'IN: 1' : 'IN: 0') : c.type === 'LED' ? (c.state === 1 ? 'LED: 1' : 'LED: 0') : c.type;
+                g.appendChild(text);
+
+                g.onmousedown = (e) => {
+                    if (e.target.classList.contains('port-circle')) return;
+                    draggingComponent = c;
+                    dragOffset = { x: e.clientX - c.x, y: e.clientY - c.y };
+                };
+
+                if (c.type === 'SWITCH') {
+                    g.onclick = (e) => {
+                        if (e.target.classList.contains('port-circle')) return;
+                        c.state = c.state === 1 ? 0 : 1;
+                        reevaluateCircuit();
+                        renderDesignerSVG();
+                    };
+                }
+
+                c.inputs.forEach((inp, idx) => {
+                    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    circle.setAttribute('cx', '0');
+                    circle.setAttribute('cy', `${20 + idx * 15}`);
+                    circle.setAttribute('r', '4.5');
+                    circle.setAttribute('class', 'port-circle');
+                    if (inp.val === 1) circle.style.fill = 'var(--accent-emerald)';
+
+                    circle.onclick = (e) => {
+                        e.stopPropagation();
+                        handlePortClick(c.id, inp.id, 'input');
+                    };
+                    g.appendChild(circle);
+                });
+
+                c.outputs.forEach((outp, idx) => {
+                    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    circle.setAttribute('cx', '80');
+                    circle.setAttribute('cy', `${20 + idx * 15}`);
+                    circle.setAttribute('r', '4.5');
+                    circle.setAttribute('class', 'port-circle');
+                    if (outp.val === 1) circle.style.fill = 'var(--accent-emerald)';
+
+                    circle.onclick = (e) => {
+                        e.stopPropagation();
+                        handlePortClick(c.id, outp.id, 'output');
+                    };
+                    g.appendChild(circle);
+                });
+
+                svg.appendChild(g);
+            });
+        }
+
+        function handlePortClick(compId, portId, portType) {
+            if (!selectedPort) {
+                if (portType !== 'output') {
+                    showToast('Vui lòng chọn chân ĐẦU RA (Output) trước để tạo dây nối!', 'warning');
+                    return;
+                }
+                selectedPort = { compId, portId, portType };
+                showToast('Đã chọn chân Đầu Ra. Bây giờ hãy nhấp vào chân Đầu Vào để nối!', 'success');
+            } else {
+                if (selectedPort.compId === compId) {
+                    showToast('Không thể nối chân linh kiện với chính nó!', 'error');
+                    selectedPort = null;
+                    return;
+                }
+                if (portType !== 'input') {
+                    showToast('Kết nối thất bại: Phải nối chân ĐẦU RA với chân ĐẦU VÀO!', 'error');
+                    selectedPort = null;
+                    return;
+                }
+
+                const existingWire = designerWires.find(w => w.toPortId === portId);
+                if (existingWire) {
+                    designerWires = designerWires.filter(w => w.id !== existingWire.id);
+                }
+
+                designerWires.push({
+                    id: 'wire_' + Date.now(),
+                    fromCompId: selectedPort.compId,
+                    fromPortId: selectedPort.portId,
+                    toCompId: compId,
+                    toPortId: portId,
+                    state: null
+                });
+
+                selectedPort = null;
+                reevaluateCircuit();
+                renderDesignerSVG();
+                showToast('Đã nối dây thành công!', 'success');
+            }
+        }
+
+        document.addEventListener('mousemove', (e) => {
+            if (draggingComponent) {
+                draggingComponent.x = Math.max(0, e.clientX - dragOffset.x);
+                draggingComponent.y = Math.max(0, e.clientY - dragOffset.y);
+                renderDesignerSVG();
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            draggingComponent = null;
+        });
+
+        function showToast(msg, type = 'info') {
+            const toastArea = document.getElementById('toast-area');
+            if (!toastArea) return;
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerText = msg;
+            toastArea.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function generateCircuitTruthTable() {
+            const inputs = designerComponents.filter(c => c.type === 'SWITCH');
+            const outputs = designerComponents.filter(c => c.type === 'LED');
+
+            if (inputs.length === 0 || outputs.length === 0) {
+                showToast('Mạch cần ít nhất 1 CÔNG TẮC ĐẦU VÀO và 1 ĐÈN LED ĐẦU RA!', 'warning');
+                return;
+            }
+
+            const totalCombos = Math.pow(2, inputs.length);
+            let tableHTML = `<table class="truth-table"><thead><tr>`;
+
+            inputs.forEach((inp, idx) => tableHTML += `<th>IN ${idx+1}</th>`);
+            outputs.forEach((out, idx) => tableHTML += `<th>OUT ${idx+1}</th>`);
+            tableHTML += `</tr></thead><tbody>`;
+
+            for (let i = 0; i < totalCombos; i++) {
+                inputs.forEach((inp, idx) => {
+                    inp.state = (i >> (inputs.length - 1 - idx)) & 1;
+                });
+
+                reevaluateCircuit();
+
+                tableHTML += `<tr>`;
+                inputs.forEach(inp => tableHTML += `<td>${inp.state}</td>`);
+                outputs.forEach(out => tableHTML += `<td>${out.state === 1 ? '1' : '0'}</td>`);
+                tableHTML += `</tr>`;
+            }
+
+            tableHTML += `</tbody></table>`;
+            document.getElementById('custom-truth-table-container').innerHTML = tableHTML;
+            showToast('Đã sinh bảng chân trị hoàn chỉnh!', 'success');
+        }
+
+        function loadPresetCircuit(type) {
+            clearCircuit();
+
+            if (type === 'HALF_ADDER') {
+                const inA = { id: 'sw_A', type: 'SWITCH', x: 50, y: 50, state: 1, inputs: [], outputs: [{ id: 'sw_A_out', name: 'Y', val: 1 }] };
+                const inB = { id: 'sw_B', type: 'SWITCH', x: 50, y: 150, state: 1, inputs: [], outputs: [{ id: 'sw_B_out', name: 'Y', val: 1 }] };
+
+                const gXOR = { id: 'gate_xor', type: 'XOR', x: 220, y: 40, state: null, inputs: [{ id: 'gate_xor_inA', val: null }, { id: 'gate_xor_inB', val: null }], outputs: [{ id: 'gate_xor_out', val: null }] };
+                const gAND = { id: 'gate_and', type: 'AND', x: 220, y: 160, state: null, inputs: [{ id: 'gate_and_inA', val: null }, { id: 'gate_and_inB', val: null }], outputs: [{ id: 'gate_and_out', val: null }] };
+
+                const ledS = { id: 'led_S', type: 'LED', x: 380, y: 40, state: null, inputs: [{ id: 'led_S_in', val: null }], outputs: [] };
+                const ledC = { id: 'led_C', type: 'LED', x: 380, y: 160, state: null, inputs: [{ id: 'led_C_in', val: null }], outputs: [] };
+
+                designerComponents = [inA, inB, gXOR, gAND, ledS, ledC];
+
+                designerWires = [
+                    { id: 'w1', fromCompId: 'sw_A', fromPortId: 'sw_A_out', toCompId: 'gate_xor', toPortId: 'gate_xor_inA', state: 1 },
+                    { id: 'w2', fromCompId: 'sw_B', fromPortId: 'sw_B_out', toCompId: 'gate_xor', toPortId: 'gate_xor_inB', state: 1 },
+                    { id: 'w3', fromCompId: 'sw_A', fromPortId: 'sw_A_out', toCompId: 'gate_and', toPortId: 'gate_and_inA', state: 1 },
+                    { id: 'w4', fromCompId: 'sw_B', fromPortId: 'sw_B_out', toCompId: 'gate_and', toPortId: 'gate_and_inB', state: 1 },
+                    { id: 'w5', fromCompId: 'gate_xor', fromPortId: 'gate_xor_out', toCompId: 'led_S', toPortId: 'led_S_in', state: null },
+                    { id: 'w6', fromCompId: 'gate_and', fromPortId: 'gate_and_out', toCompId: 'led_C', toPortId: 'led_C_in', state: null }
+                ];
+
+                reevaluateCircuit();
+                renderDesignerSVG();
+                showToast('Đã nạp mạch mẫu Half Adder', 'success');
+            } else if (type === 'FULL_ADDER') {
+                const inA = { id: 'sw_A', type: 'SWITCH', x: 40, y: 40, state: 1, inputs: [], outputs: [{ id: 'sw_A_out', name: 'Y', val: 1 }] };
+                const inB = { id: 'sw_B', type: 'SWITCH', x: 40, y: 140, state: 1, inputs: [], outputs: [{ id: 'sw_B_out', name: 'Y', val: 1 }] };
+                const inCin = { id: 'sw_Cin', type: 'SWITCH', x: 40, y: 240, state: 0, inputs: [], outputs: [{ id: 'sw_Cin_out', name: 'Y', val: 0 }] };
+
+                const xor1 = { id: 'xor_1', type: 'XOR', x: 200, y: 40, state: null, inputs: [{ id: 'xor_1_inA', val: null }, { id: 'xor_1_inB', val: null }], outputs: [{ id: 'xor_1_out', val: null }] };
+                const xor2 = { id: 'xor_2', type: 'XOR', x: 380, y: 60, state: null, inputs: [{ id: 'xor_2_inA', val: null }, { id: 'xor_2_inB', val: null }], outputs: [{ id: 'xor_2_out', val: null }] };
+
+                const and1 = { id: 'and_1', type: 'AND', x: 200, y: 150, state: null, inputs: [{ id: 'and_1_inA', val: null }, { id: 'and_1_inB', val: null }], outputs: [{ id: 'and_1_out', val: null }] };
+                const and2 = { id: 'and_2', type: 'AND', x: 380, y: 200, state: null, inputs: [{ id: 'and_2_inA', val: null }, { id: 'and_2_inB', val: null }], outputs: [{ id: 'and_2_out', val: null }] };
+
+                const or1 = { id: 'or_1', type: 'OR', x: 540, y: 175, state: null, inputs: [{ id: 'or_1_inA', val: null }, { id: 'or_1_inB', val: null }], outputs: [{ id: 'or_1_out', val: null }] };
+
+                const ledS = { id: 'led_S', type: 'LED', x: 540, y: 60, state: null, inputs: [{ id: 'led_S_in', val: null }], outputs: [] };
+                const ledCout = { id: 'led_Cout', type: 'LED', x: 680, y: 175, state: null, inputs: [{ id: 'led_Cout_in', val: null }], outputs: [] };
+
+                designerComponents = [inA, inB, inCin, xor1, xor2, and1, and2, or1, ledS, ledCout];
+
+                designerWires = [
+                    { id: 'w_a1', fromCompId: 'sw_A', fromPortId: 'sw_A_out', toCompId: 'xor_1', toPortId: 'xor_1_inA', state: null },
+                    { id: 'w_b1', fromCompId: 'sw_B', fromPortId: 'sw_B_out', toCompId: 'xor_1', toPortId: 'xor_1_inB', state: null },
+                    { id: 'w_a2', fromCompId: 'sw_A', fromPortId: 'sw_A_out', toCompId: 'and_1', toPortId: 'and_1_inA', state: null },
+                    { id: 'w_b2', fromCompId: 'sw_B', fromPortId: 'sw_B_out', toCompId: 'and_1', toPortId: 'and_1_inB', state: null },
+                    { id: 'w_x1', fromCompId: 'xor_1', fromPortId: 'xor_1_out', toCompId: 'xor_2', toPortId: 'xor_2_inA', state: null },
+                    { id: 'w_cin1', fromCompId: 'sw_Cin', fromPortId: 'sw_Cin_out', toCompId: 'xor_2', toPortId: 'xor_2_inB', state: null },
+                    { id: 'w_x2', fromCompId: 'xor_1', fromPortId: 'xor_1_out', toCompId: 'and_2', toPortId: 'and_2_inA', state: null },
+                    { id: 'w_cin2', fromCompId: 'sw_Cin', fromPortId: 'sw_Cin_out', toCompId: 'and_2', toPortId: 'and_2_inB', state: null },
+                    { id: 'w_o1', fromCompId: 'and_1', fromPortId: 'and_1_out', toCompId: 'or_1', toPortId: 'or_1_inA', state: null },
+                    { id: 'w_o2', fromCompId: 'and_2', fromPortId: 'and_2_out', toCompId: 'or_1', toPortId: 'or_1_inB', state: null },
+                    { id: 'w_s', fromCompId: 'xor_2', fromPortId: 'xor_2_out', toCompId: 'led_S', toPortId: 'led_S_in', state: null },
+                    { id: 'w_cout', fromCompId: 'or_1', fromPortId: 'or_1_out', toCompId: 'led_Cout', toPortId: 'led_Cout_in', state: null }
+                ];
+
+                reevaluateCircuit();
+                renderDesignerSVG();
+                showToast('Đã nạp thành công mô hình Full Adder!', 'success');
+            }
+        }
+
+        /* ==========================================================================
+           FEATURE 3: MULTI-BIT ADDER & ADVANCED ARITHMETIC 
+           (Đã hỗ trợ dynamic scaling cho cả chế độ 4-bit và 8-bit)
+           ========================================================================== */
+        let activeAdderModule = 'multibit';
+        let multiBitSize = 4;
+        let multiBitA = [1, 1, 0, 1, 0, 0, 0, 0]; // LSB to MSB (8 bits max)
+        let multiBitB = [0, 1, 1, 0, 0, 0, 0, 0];
+        let subA = [1, 0, 1, 0]; 
+        let subB = [0, 1, 0, 0]; 
+
+        let mulM = [0, 1, 1, 0]; 
+        let mulQ = [0, 1, 0, 1]; 
+
+        let divQ = [1, 1, 0, 1]; 
+        let divM = [0, 0, 1, 1]; 
+
+        let currentStepIdx = 0;
+
+        function switchAdderModule(mod) {
+            activeAdderModule = mod;
+            currentStepIdx = 0;
+
+            ['half', 'full', 'multibit', 'sub', 'mul', 'div'].forEach(m => {
+                const btn = document.getElementById(`btn-mod-${m}`);
+                if (btn) btn.className = `btn ${mod === m ? 'btn-primary' : ''}`;
+            });
+
+            renderAdderModule();
+        }
+
+        function toggleBitArray(arr, idx) {
+            arr[idx] = arr[idx] === 1 ? 0 : 1;
+            renderAdderModule();
+        }
+
+        function setBitWidth(bits) {
+            multiBitSize = bits;
+            // Đảm bảo mảng đủ kích thước
+            while(multiBitA.length < bits) multiBitA.push(0);
+            while(multiBitB.length < bits) multiBitB.push(0);
+            renderAdderModule();
+        }
+
+        function renderAdderModule() {
+            const interactiveArea = document.getElementById('adder-interactive-area');
+            const theoryBox = document.getElementById('adder-theory-box');
+
+            if (activeAdderModule === 'half') {
+                const A0 = multiBitA[0];
+                const B0 = multiBitB[0];
+                const S = LogicEngine.XOR(A0, B0);
+                const Carry = LogicEngine.AND(A0, B0);
+
+                theoryBox.innerHTML = `
+                    <h4 style="color: var(--accent-blue);">Mạch Cộng Bán Phần (Half Adder)</h4>
+                    <p style="margin-top: 0.5rem;">Cộng 2 bit đơn lẻ A₀ và B₀.</p>
+                `;
+
+                const wA = A0 ? 'wire-path high wire-animated' : 'wire-path low';
+                const wB = B0 ? 'wire-path high wire-animated' : 'wire-path low';
+                const wS = S ? 'wire-path high wire-animated' : 'wire-path low';
+                const wC = Carry ? 'wire-path high wire-animated' : 'wire-path low';
+
+                interactiveArea.innerHTML = `
+                    <div class="adder-controls" style="justify-content: center; margin-bottom: 2rem;">
+                        <div class="switch-group">
+                            <span>A0:</span><div class="switch-btn ${A0 ? 'on' : ''}" onclick="toggleBitArray(multiBitA, 0)"></div><b>${A0}</b>
+                        </div>
+                        <div class="switch-group">
+                            <span>B0:</span><div class="switch-btn ${B0 ? 'on' : ''}" onclick="toggleBitArray(multiBitB, 0)"></div><b>${B0}</b>
+                        </div>
+                    </div>
+                    <div class="interactive-svg-container">
+                        <svg width="400" height="200" viewBox="0 0 400 200">
+                            <path d="M 50 70 L 150 70" class="${wA}"/>
+                            <path d="M 50 130 L 150 130" class="${wB}"/>
+                            <text x="30" y="75" fill="white" font-weight="bold">A</text>
+                            <text x="30" y="135" fill="white" font-weight="bold">B</text>
+                            <rect x="150" y="40" width="100" height="120" rx="8" class="gate-body ${S || Carry ? 'glowing' : ''}"/>
+                            <text x="200" y="105" class="gate-label">Half Adder</text>
+                            <path d="M 250 70 L 350 70" class="${wS}"/>
+                            <path d="M 250 130 L 350 130" class="${wC}"/>
+                            <text x="360" y="75" fill="var(--accent-emerald)" font-weight="bold">S = ${S}</text>
+                            <text x="360" y="135" fill="var(--accent-amber)" font-weight="bold">C = ${Carry}</text>
+                        </svg>
+                    </div>
+                `;
+            } else if (activeAdderModule === 'full') {
+                const A0 = multiBitA[0];
+                const B0 = multiBitB[0];
+                const Cin = multiBitA[2] || 0;
+                const S = A0 ^ B0 ^ Cin;
+                const Cout = (A0 & B0) | (Cin & (A0 ^ B0));
+
+                theoryBox.innerHTML = `
+                    <h4 style="color: var(--accent-blue);">Mạch Cộng Toàn Phần (Full Adder)</h4>
+                    <p style="margin-top: 0.5rem;">Cộng 3 bit (kèm theo bit nhớ Cin).</p>
+                `;
+
+                const wA = A0 ? 'wire-path high wire-animated' : 'wire-path low';
+                const wB = B0 ? 'wire-path high wire-animated' : 'wire-path low';
+                const wCin = Cin ? 'wire-path high wire-animated' : 'wire-path low';
+                const wS = S ? 'wire-path high wire-animated' : 'wire-path low';
+                const wCout = Cout ? 'wire-path high wire-animated' : 'wire-path low';
+
+                interactiveArea.innerHTML = `
+                    <div class="adder-controls" style="justify-content: center; margin-bottom: 2rem;">
+                        <div class="switch-group">
+                            <span>A:</span><div class="switch-btn ${A0 ? 'on' : ''}" onclick="toggleBitArray(multiBitA, 0)"></div><b>${A0}</b>
+                        </div>
+                        <div class="switch-group">
+                            <span>B:</span><div class="switch-btn ${B0 ? 'on' : ''}" onclick="toggleBitArray(multiBitB, 0)"></div><b>${B0}</b>
+                        </div>
+                        <div class="switch-group">
+                            <span>Cin:</span><div class="switch-btn ${Cin ? 'on' : ''}" onclick="toggleBitArray(multiBitA, 2)"></div><b>${Cin}</b>
+                        </div>
+                    </div>
+                    <div class="interactive-svg-container">
+                        <svg width="400" height="240" viewBox="0 0 400 240">
+                            <path d="M 50 60 L 150 60" class="${wA}"/>
+                            <path d="M 50 120 L 150 120" class="${wB}"/>
+                            <path d="M 50 180 L 150 180" class="${wCin}"/>
+                            <text x="20" y="65" fill="white" font-weight="bold">A</text>
+                            <text x="20" y="125" fill="white" font-weight="bold">B</text>
+                            <text x="15" y="185" fill="white" font-weight="bold">Cin</text>
+                            <rect x="150" y="30" width="100" height="180" rx="8" class="gate-body ${S || Cout ? 'glowing' : ''}"/>
+                            <text x="200" y="125" class="gate-label">Full Adder</text>
+                            <path d="M 250 80 L 350 80" class="${wS}"/>
+                            <path d="M 250 160 L 350 160" class="${wCout}"/>
+                            <text x="360" y="85" fill="var(--accent-emerald)" font-weight="bold">S = ${S}</text>
+                            <text x="360" y="165" fill="var(--accent-amber)" font-weight="bold">Cout = ${Cout}</text>
+                        </svg>
+                    </div>
+                `;
+            } else if (activeAdderModule === 'multibit') {
+                let carries = new Array(multiBitSize + 1).fill(0);
+                let sums = new Array(multiBitSize).fill(0);
+
+                for (let i = 0; i < multiBitSize; i++) {
+                    let a = multiBitA[i];
+                    let b = multiBitB[i];
+                    let c = carries[i];
+                    sums[i] = a ^ b ^ c;
+                    carries[i + 1] = (a & b) | (c & (a ^ b));
+                }
+                
+                let valA = 0, valB = 0;
+                for(let i=0; i<multiBitSize; i++) {
+                    valA += multiBitA[i] * Math.pow(2, i);
+                    valB += multiBitB[i] * Math.pow(2, i);
+                }
+                let totalVal = valA + valB;
+
+                let binA = '';
+                let binB = '';
+                let binSum = '';
+                for(let i = multiBitSize - 1; i >= 0; i--) {
+                    binA += multiBitA[i];
+                    binB += multiBitB[i];
+                    binSum += sums[i];
+                }
+                let cout = carries[multiBitSize];
+
+                theoryBox.innerHTML = `
+                    <h4 style="color: var(--accent-blue);">Bộ Cộng Nhị Phân Nhiều Bit (${multiBitSize}-bit)</h4>
+                    <p style="margin-top: 0.5rem;">Mô phỏng 2D cộng cột dọc nhị phân kèm các đường mũi tên mang nhớ (Carry propagation) từ phải qua trái cho toàn bộ ${multiBitSize} bit.</p>
+                `;
+
+                let switchesA = '', switchesB = '';
+                for (let i = multiBitSize - 1; i >= 0; i--) {
+                    switchesA += `<div class="switch-group"><span>A${i}:</span><div class="switch-btn ${multiBitA[i] ? 'on' : ''}" onclick="toggleBitArray(multiBitA, ${i})"></div></div>`;
+                    switchesB += `<div class="switch-group"><span>B${i}:</span><div class="switch-btn ${multiBitB[i] ? 'on' : ''}" onclick="toggleBitArray(multiBitB, ${i})"></div></div>`;
+                }
+
+                // Dynamic SVG width based on bit size to prevent clipping in 8-bit mode
+                let colWidth = multiBitSize === 8 ? 50 : 60;
+                let svgWidth = Math.max(700, multiBitSize * colWidth + 140);
+                let colSvgHTML = `<svg width="100%" height="230" viewBox="0 0 ${svgWidth} 230" style="background: rgba(15, 23, 42, 0.9); border-radius: 8px;">`;
+                
+                let startX = svgWidth - 80;
+
+                // Plus sign position
+                let plusX = startX - (multiBitSize + 1) * colWidth + 10;
+                colSvgHTML += `<text x="${plusX}" y="105" fill="var(--accent-blue)" font-size="26" font-weight="bold">+</text>`;
+
+                // Horizontal separator line
+                let lineStartX = startX - (multiBitSize + 0.5) * colWidth;
+                let lineEndX = startX + 30;
+                colSvgHTML += `<line x1="${lineStartX}" y1="125" x2="${lineEndX}" y2="125" stroke="var(--border-color)" stroke-width="3"/>`;
+
+                // Render columns from right (LSB: i=0) to left (MSB: i=multiBitSize-1)
+                for (let i = 0; i < multiBitSize; i++) {
+                    let cx = startX - i * colWidth;
+                    let A = multiBitA[i];
+                    let B = multiBitB[i];
+                    let S = sums[i];
+                    let carryOut = carries[i+1];
+
+                    // Carry bit displayed above columns
+                    if (i > 0 && carries[i] > 0) {
+                        colSvgHTML += `<text x="${cx + colWidth/2}" y="45" fill="var(--accent-amber)" font-size="13" font-weight="bold" text-anchor="middle">${carries[i]}</text>`;
+                    }
+
+                    // A, B values
+                    colSvgHTML += `<text x="${cx}" y="80" fill="var(--text-light)" font-size="${multiBitSize === 8 ? '18' : '20'}" font-weight="bold" text-anchor="middle">${A}</text>`;
+                    colSvgHTML += `<text x="${cx}" y="110" fill="var(--text-light)" font-size="${multiBitSize === 8 ? '18' : '20'}" font-weight="bold" text-anchor="middle">${B}</text>`;
+                    
+                    // Sum S
+                    colSvgHTML += `<text x="${cx}" y="160" fill="var(--accent-emerald)" font-size="${multiBitSize === 8 ? '18' : '22'}" font-weight="bold" text-anchor="middle">${S}</text>`;
+
+                    // Animated carry arrow pointing right-to-left
+                    if (i < multiBitSize - 1 && carryOut > 0) {
+                        let nextCx = startX - (i + 1) * colWidth;
+                        colSvgHTML += `
+                            <path d="M ${cx} 175 Q ${(cx + nextCx)/2} 210 ${nextCx} 175" class="carry-arrow-path" marker-end="url(#arrow)" />
+                        `;
+                    }
+                }
+
+                // Final Carry Out on the left
+                if (cout > 0) {
+                    let lastCx = startX - (multiBitSize) * colWidth;
+                    colSvgHTML += `<text x="${lastCx}" y="160" fill="var(--accent-amber)" font-size="20" font-weight="bold" text-anchor="middle">${cout}</text>`;
+                }
+
+                colSvgHTML += `
+                    <defs>
+                        <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--accent-amber)"/>
+                        </marker>
+                    </defs>
+                </svg>`;
+
+                interactiveArea.innerHTML = `
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                        <button class="btn ${multiBitSize === 4 ? 'btn-primary' : ''}" onclick="setBitWidth(4)">Chế độ 4-bit</button>
+                        <button class="btn ${multiBitSize === 8 ? 'btn-primary' : ''}" onclick="setBitWidth(8)">Chế độ 8-bit</button>
+                    </div>
+
+                    <div style="margin-bottom: 0.75rem;"><strong style="color: var(--accent-blue);">Toán hạng A:</strong> <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.3rem;">${switchesA}</div></div>
+                    <div style="margin-bottom: 1rem;"><strong style="color: var(--accent-emerald);">Toán hạng B:</strong> <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.3rem;">${switchesB}</div></div>
+
+                    <div class="interactive-svg-container" style="overflow-x: auto;">
+                        ${colSvgHTML}
+                    </div>
+
+                    <div style="background-color: var(--bg-main); border: 1px solid var(--border-color); border-radius: 8px; padding: 1.25rem;">
+                        <div style="font-family: monospace; font-size: 1.1rem; line-height: 1.8;">
+                            &nbsp;&nbsp;Toán hạng A: ${binA}₂ (${valA})<br>
+                          + Toán hạng B: ${binB}₂ (${valB})<br>
+                          -----------------------------------------------------<br>
+                          <span style="color: var(--accent-emerald); font-weight: bold;">= Kết quả: ${cout}${binSum}₂ (${totalVal} thập phân)</span>
+                        </div>
+                    </div>
+                `;
+            } else if (activeAdderModule === 'sub') {
+                let notB = subB.map(b => b === 1 ? 0 : 1);
+                let valNotB = notB.reduce((acc, bit, idx) => acc + bit * Math.pow(2, idx), 0);
+                let valComp2B = valNotB + 1;
+
+                let valA = subA.reduce((acc, bit, idx) => acc + bit * Math.pow(2, idx), 0);
+                let valB = subB.reduce((acc, bit, idx) => acc + bit * Math.pow(2, idx), 0);
+                let diff = valA - valB;
+
+                theoryBox.innerHTML = `
+                    <h4 style="color: var(--accent-blue);">Phép Trừ Nhị Phân (Mã Bù 2)</h4>
+                    <p style="margin-top: 0.5rem;">ALU thực hiện $A - B$ bằng phép cộng $A + (\\overline{B} + 1)$.</p>
+                `;
+
+                let switchesA = '', switchesB = '';
+                for (let i = 3; i >= 0; i--) {
+                    switchesA += `<div class="switch-group"><span>A${i}:</span><div class="switch-btn ${subA[i] ? 'on' : ''}" onclick="toggleBitArray(subA, ${i})"></div></div>`;
+                    switchesB += `<div class="switch-group"><span>B${i}:</span><div class="switch-btn ${subB[i] ? 'on' : ''}" onclick="toggleBitArray(subB, ${i})"></div></div>`;
+                }
+
+                interactiveArea.innerHTML = `
+                    <div style="margin-bottom: 0.75rem;"><strong style="color: var(--accent-blue);">Số bị trừ A:</strong> <div style="display: flex; gap: 0.4rem; margin-top: 0.3rem;">${switchesA}</div></div>
+                    <div style="margin-bottom: 1rem;"><strong style="color: var(--accent-emerald);">Số trừ B:</strong> <div style="display: flex; gap: 0.4rem; margin-top: 0.3rem;">${switchesB}</div></div>
+
+                    <div style="background-color: var(--bg-main); border: 1px solid var(--border-color); border-radius: 8px; padding: 1.25rem; font-family: monospace;">
+                        <p>1. Bù 1 của B (NOT B): <strong>${[...notB].reverse().join('')}₂</strong></p>
+                        <p>2. Bù 2 của B (NOT B + 1): <strong>${valComp2B.toString(2).padStart(4,'0')}₂</strong></p>
+                        <hr style="border-color: var(--border-color); margin: 0.5rem 0;">
+                        <p style="font-size: 1.2rem; color: var(--accent-emerald); font-weight: bold;">
+                            Hiệu A - B = ${valA} - ${valB} = ${diff} (Dạng Nhị Phân: ${diff >= 0 ? diff.toString(2).padStart(4,'0') : 'Âm (Bù 2)'})
+                        </p>
+                    </div>
+                `;
+            } else if (activeAdderModule === 'mul') {
+                let valM = mulM.reduce((acc, bit, idx) => acc + bit * Math.pow(2, idx), 0);
+                let valQ = mulQ.reduce((acc, bit, idx) => acc + bit * Math.pow(2, idx), 0);
+                let product = valM * valQ;
+
+                theoryBox.innerHTML = `
+                    <h4 style="color: var(--accent-blue);">Phép Nhân Tuần Tự (Shift & Add)</h4>
+                    <p style="margin-top: 0.5rem;">Thuật toán nhân tuần tự sử dụng thanh ghi Tích tích lũy A, Số bị nhân M và Số nhân Q.</p>
+                `;
+
+                let switchesM = '', switchesQ = '';
+                for (let i = 3; i >= 0; i--) {
+                    switchesM += `<div class="switch-group"><span>M${i}:</span><div class="switch-btn ${mulM[i] ? 'on' : ''}" onclick="toggleBitArray(mulM, ${i})"></div></div>`;
+                    switchesQ += `<div class="switch-group"><span>Q${i}:</span><div class="switch-btn ${mulQ[i] ? 'on' : ''}" onclick="toggleBitArray(mulQ, ${i})"></div></div>`;
+                }
+
+                interactiveArea.innerHTML = `
+                    <div style="margin-bottom: 0.75rem;"><strong style="color: var(--accent-blue);">Số bị nhân M:</strong> <div style="display: flex; gap: 0.4rem; margin-top: 0.3rem;">${switchesM}</div></div>
+                    <div style="margin-bottom: 1rem;"><strong style="color: var(--accent-emerald);">Số nhân Q:</strong> <div style="display: flex; gap: 0.4rem; margin-top: 0.3rem;">${switchesQ}</div></div>
+
+                    <div style="background-color: var(--bg-main); border: 1px solid var(--border-color); border-radius: 8px; padding: 1.25rem;">
+                        <h4 style="color: var(--accent-emerald);">Kết quả phép nhân: ${valM} × ${valQ} = ${product} (${product.toString(2).padStart(8, '0')}₂)</h4>
+                        <table class="register-table">
+                            <thead>
+                                <tr><th>Bước</th><th>C</th><th>A (Accumulator)</th><th>Q (Multiplier)</th><th>Thao tác</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>0</td><td>0</td><td>0000</td><td>${[...mulQ].reverse().join('')}</td><td>Khởi tạo thanh ghi</td></tr>
+                                <tr><td>1..4</td><td>-</td><td>...</td><td>...</td><td>Cộng A = A + M nếu Q₀ = 1, Dịch phải [C A Q]</td></tr>
+                                <tr style="background: rgba(16, 185, 129, 0.2); font-weight: bold;"><td colspan="2">TÍCH CUỐI</td><td colspan="2">${product.toString(2).padStart(8, '0')}₂</td><td>Thập phân: ${product}</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } else if (activeAdderModule === 'div') {
+                let valQ = divQ.reduce((acc, bit, idx) => acc + bit * Math.pow(2, idx), 0);
+                let valM = divM.reduce((acc, bit, idx) => acc + bit * Math.pow(2, idx), 0);
+                if (valM === 0) valM = 1;
+
+                let quotient = Math.floor(valQ / valM);
+                let remainder = valQ % valM;
+
+                theoryBox.innerHTML = `
+                    <h4 style="color: var(--accent-blue);">Phép Chia Tuần Tự (Restoring Division)</h4>
+                    <p style="margin-top: 0.5rem;">Thuật toán chia nhị phân khôi phục số dư: Dịch trái [A, Q], trừ $A = A - M$. Nếu $A < 0$ thì khôi phục $A = A + M$.</p>
+                `;
+
+                let switchesQ = '', switchesM = '';
+                for (let i = 3; i >= 0; i--) {
+                    switchesQ += `<div class="switch-group"><span>Q${i}:</span><div class="switch-btn ${divQ[i] ? 'on' : ''}" onclick="toggleBitArray(divQ, ${i})"></div></div>`;
+                    switchesM += `<div class="switch-group"><span>M${i}:</span><div class="switch-btn ${divM[i] ? 'on' : ''}" onclick="toggleBitArray(divM, ${i})"></div></div>`;
+                }
+
+                interactiveArea.innerHTML = `
+                    <div style="margin-bottom: 0.75rem;"><strong style="color: var(--accent-blue);">Số bị chia Q (Dividend):</strong> <div style="display: flex; gap: 0.4rem; margin-top: 0.3rem;">${switchesQ}</div></div>
+                    <div style="margin-bottom: 1rem;"><strong style="color: var(--accent-emerald);">Số chia M (Divisor):</strong> <div style="display: flex; gap: 0.4rem; margin-top: 0.3rem;">${switchesM}</div></div>
+
+                    <div style="background-color: var(--bg-main); border: 1px solid var(--border-color); border-radius: 8px; padding: 1.25rem;">
+                        <div style="font-size: 1.1rem; line-height: 1.8;">
+                            Phép chia: <strong>${valQ} ÷ ${valM}</strong><br>
+                            👉 <span style="color: var(--accent-emerald); font-weight: bold;">Thương số (Quotient Q) = ${quotient} (${quotient.toString(2).padStart(4,'0')}₂)</span><br>
+                            👉 <span style="color: var(--accent-amber); font-weight: bold;">Số dư (Remainder A) = ${remainder} (${remainder.toString(2).padStart(4,'0')}₂)</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            renderStepDescription();
+        }
+
+        function renderStepDescription() {
+            const stepBox = document.getElementById('step-description-box');
+            const counter = document.getElementById('step-counter');
+
+            const steps = [
+                { title: 'Bước 1: Khởi tạo dữ liệu vào các thanh ghi', desc: 'Nạp các giá trị toán hạng nhị phân từ công tắc vào thanh ghi xử lý của ALU.' },
+                { title: 'Bước 2: Xử lý khối tầng logic nhị phân', desc: 'Thực hiện truyền tín hiệu điện áp qua các cổng logic đại số Boolean.' },
+                { title: 'Bước 3: Dịch bit và tính bit nhớ (Carry/Borrow)', desc: 'Cập nhật trạng thái bit nhớ tràn hoặc thực hiện dịch bit dữ liệu trong thuật toán tuần tự.' },
+                { title: 'Bước 4: Kiểm tra điều kiện lặp / Cờ trạng thái', desc: 'Kiểm tra cờ báo bằng 0 (Zero flag), cờ âm (Sign flag) hoặc cờ tràn (Overflow flag).' },
+                { title: 'Bước 5: Xuất kết quả cuối cùng ra LED', desc: 'Chuyển đổi kết quả nhị phân đầu ra thành giá trị thập phân tương ứng.' }
+            ];
+
+            counter.innerText = `Bước ${currentStepIdx + 1} / ${steps.length}`;
+            stepBox.innerHTML = `
+                <h4 style="color: var(--accent-blue);">${steps[currentStepIdx].title}</h4>
+                <p style="margin-top: 0.5rem; color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">${steps[currentStepIdx].desc}</p>
+            `;
+        }
+
+        function adderStepNext() {
+            if (currentStepIdx < 4) {
+                currentStepIdx++;
+                renderStepDescription();
+            }
+        }
+
+        function adderStepPrev() {
+            if (currentStepIdx > 0) {
+                currentStepIdx--;
+                renderStepDescription();
+            }
+        }
+
+        function adderResetSteps() {
+            currentStepIdx = 0;
+            renderStepDescription();
+        }
+
+        /* ==========================================================================
+           TEACHER MODE & PRESETS LOADER
+           ========================================================================== */
+        function toggleTeacherModeUI() {
+            document.body.classList.toggle('teacher-mode');
+            showToast('Đã chuyển đổi chế độ giao diện giảng dạy', 'info');
+        }
+
+        function loadTeacherPreset(presetType) {
+            switchView('designer');
+            if (presetType === 'full') {
+                loadPresetCircuit('FULL_ADDER');
+            }
+        }
+
+        window.onload = () => {
+            initGateLab();
+        };
+    </script>
+    <script>
+    /* ==========================================================================
+       LUYỆN TẬP + SUPABASE (mô-đun độc lập, không sửa hàm cũ)
+       ========================================================================== */
+    (function () {
+      const cfg = window.PRACTICE_CONFIG || {};
+      const LS = 'lcs_practice_v1', LSLAST = 'lcs_practice_last';
+      const $ = id => document.getElementById(id);
+      const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      const S = { att: null, qs: [], ans: {}, idx: 0, busy: false, timer: null, draftOk: true, res: null };
+      let sb = null;
+      const ERR = { NOT_CONFIGURED: 'Website chưa được cấu hình Supabase (xem file hướng dẫn).', NO_SDK: 'Không tải được thư viện Supabase. Kiểm tra kết nối Internet.',
+        INVALID_NAME: 'Họ và tên không hợp lệ.', INVALID_CLASS: 'Lớp không hợp lệ (ví dụ: 11A1).', NO_QUESTIONS: 'Chưa có câu hỏi nào được bật trong hệ thống.',
+        ATTEMPT_NOT_FOUND: 'Không tìm thấy lượt làm bài này (có thể đã đổi trình duyệt hoặc phiên đã hết hạn).', NOT_SUBMITTED: 'Bài làm này chưa được nộp.' };
+      const errText = e => { const m = (e && e.message) || String(e); if (ERR[m]) return ERR[m];
+        if (/fetch|network|Failed to|Load failed/i.test(m)) return 'Mất kết nối mạng. Bài làm vẫn được giữ trên máy, hãy kiểm tra mạng rồi thử lại.';
+        if (/anonymous/i.test(m)) return 'Supabase chưa bật "Allow anonymous sign-ins" hoặc đã vượt giới hạn đăng nhập. (' + m + ')';
+        return 'Lỗi: ' + m; };
+      function client() {
+        if (sb) return sb;
+        if (!cfg.SUPABASE_URL || !cfg.SUPABASE_KEY) throw new Error('NOT_CONFIGURED');
+        if (!window.supabase) throw new Error('NO_SDK');
+        sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
+        return sb;
+      }
+      async function ensureStudentSession() {
+        const c = client(); const { data } = await c.auth.getSession();
+        if (data.session && !data.session.user.is_anonymous) { await c.auth.signOut(); }   // máy dùng chung: không làm bài bằng phiên giáo viên
+        const d2 = await c.auth.getSession();
+        if (!d2.data.session) { const r = await c.auth.signInAnonymously(); if (r.error) throw r.error; }
+        return c;
+      }
+      async function rpc(name, args) { const r = await client().rpc(name, args); if (r.error) throw r.error; return r.data; }
+      const loadLS = () => { try { return JSON.parse(localStorage.getItem(LS)); } catch (e) { return null; } };
+      const saveLS = () => { try { localStorage.setItem(LS, JSON.stringify({ attemptId: S.att.attempt_id, answers: S.ans, idx: S.idx })); } catch (e) {} };
+      const clearLS = () => { try { localStorage.removeItem(LS); } catch (e) {} };
+      const fmtDur = s => Math.floor(s / 60) + ' phút ' + (s % 60) + ' giây';
+      const fmtDT = d => d ? new Date(d).toLocaleString('vi-VN') : '';
+      const msg = (id, text, cls) => { const el = $(id); if (el) el.innerHTML = text ? `<div class="pr-msg ${cls || ''}">${esc(text)}</div>` : ''; };
+
+      /* ---------- Màn hình chính ---------- */
+      function landing() {
+        const saved = loadLS(), last = (() => { try { return localStorage.getItem(LSLAST); } catch (e) { return null; } })();
+        $('pr-root').innerHTML = `<div class="pr-card" style="border-left:6px solid var(--accent-blue)">
+          <h1 style="color:var(--accent-blue)">Luyện Tập – LogicCircuit-Sim</h1>
+          <p style="color:var(--text-muted);margin-top:.5rem;line-height:1.6">Hãy hoàn thành các bài tập để củng cố kiến thức về cổng logic, mạch điện số và số học nhị phân</p>
+          <ul style="margin:1rem 0 1rem 1.25rem;color:var(--text-muted);line-height:1.8"><li>Cổng AND, OR, NOT, NAND, NOR, XOR, XNOR và bảng chân trị</li><li>Bộ cộng bán phần, bộ cộng toàn phần, bộ cộng nhiều bit</li><li>Phép trừ bù 2, phép nhân Shift-and-Add, phép chia Restoring Division</li></ul>
+          <p style="color:var(--text-muted);font-size:.9rem;margin-bottom:1rem">Bạn chỉ cần nhập Họ và tên và Lớp. Kết quả được gửi cho giáo viên khi nộp bài.</p>
+          ${cfg.SUPABASE_URL && cfg.SUPABASE_KEY ? '' : '<div class="pr-msg">⚠️ Chưa cấu hình Supabase: điền SUPABASE_URL và SUPABASE_KEY ở đầu file HTML để lưu kết quả.</div>'}
+          <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1rem">
+            <button class="btn btn-primary" style="font-size:1.05rem;padding:.8rem 1.6rem" onclick="PR.openForm()">Tiến hành Luyện Tập</button>
+            ${saved ? '<button class="btn" onclick="PR.resume()">↩ Tiếp tục bài đang làm dở</button>' : ''}
+            ${last ? '<button class="btn" onclick="PR.showLast()">Xem kết quả lần gần nhất</button>' : ''}
+            <button class="btn" onclick="switchView(\'results\')">🔒 Khu vực giáo viên</button></div>
+          <div id="pr-msg"></div></div>`;
+      }
+      function openForm() {
+        $('pr-root').innerHTML = `<div class="pr-card"><h2>Thông tin học sinh</h2>
+          <div class="pr-field" style="margin-top:1rem"><label for="pr-name">Họ và tên *</label><input id="pr-name" class="pr-input" maxlength="80" autocomplete="name" placeholder="Ví dụ: Nguyễn Văn An"></div>
+          <div class="pr-field"><label for="pr-class">Lớp *</label><input id="pr-class" class="pr-input" maxlength="20" placeholder="Ví dụ: 11A1"></div>
+          <div style="display:flex;gap:.75rem"><button id="pr-go" class="btn btn-primary" onclick="PR.start()">Bắt đầu làm bài</button><button class="btn" onclick="PR.landing()">Quay lại</button></div>
+          <div id="pr-msg"></div></div>`;
+      }
+      async function start() {
+        if (S.busy) return;
+        const name = $('pr-name').value.replace(/\s+/g, ' ').trim(), cls = $('pr-class').value.replace(/\s+/g, '').toUpperCase();
+        if (!name) return msg('pr-msg', 'Vui lòng nhập Họ và tên.', 'err');
+        if (name.length < 2 || /[0-9<>{}\[\]\\\/@;=%$#*()_+|~^`"]/.test(name)) return msg('pr-msg', 'Họ và tên chưa hợp lệ: chỉ dùng chữ cái, khoảng trắng, dấu chấm, gạch nối (tối thiểu 2 ký tự).', 'err');
+        if (!cls) return msg('pr-msg', 'Vui lòng nhập Lớp.', 'err');
+        if (!/^[A-Z0-9._\/-]{1,20}$/.test(cls)) return msg('pr-msg', 'Lớp chưa hợp lệ (ví dụ: 11A1).', 'err');
+        S.busy = true; $('pr-go').disabled = true; msg('pr-msg', 'Đang tạo lượt làm bài...');
+        try { await ensureStudentSession(); const d = await rpc('practice_start_attempt', { p_full_name: name, p_class_name: cls }); loadAttempt(d, {}); }
+        catch (e) { msg('pr-msg', errText(e), 'err'); }
+        S.busy = false; if ($('pr-go')) $('pr-go').disabled = false;
+      }
+      function loadAttempt(d, localAns) {
+        S.att = d; S.qs = d.questions; S.ans = Object.assign({}, d.draft_answers || {}, localAns || {}); S.idx = 0; S.res = null; saveLS(); quiz();
+      }
+      async function resume() {
+        const l = loadLS(); if (!l) return;
+        try { await ensureStudentSession(); const d = await rpc('practice_get_attempt', { p_attempt_id: l.attemptId });
+          if (d.status === 'submitted') { clearLS(); return result(await rpc('practice_get_result', { p_attempt_id: l.attemptId })); }
+          loadAttempt(d, l.answers); S.idx = Math.min(l.idx || 0, S.qs.length - 1); quiz();
+        } catch (e) { msg('pr-msg', errText(e) + (e.message === 'ATTEMPT_NOT_FOUND' ? ' Bài làm dở trên máy này sẽ bị xóa.' : ''), 'err'); if (e.message === 'ATTEMPT_NOT_FOUND') clearLS(); }
+      }
+      async function showLast() {
+        try { await ensureStudentSession(); result(await rpc('practice_get_result', { p_attempt_id: localStorage.getItem(LSLAST) })); }
+        catch (e) { msg('pr-msg', errText(e), 'err'); }
+      }
+
+      /* ---------- Làm bài ---------- */
+      function quiz() {
+        const q = S.qs[S.idx], n = S.qs.length, done = Object.keys(S.ans).length;
+        $('pr-root').innerHTML = `<div class="pr-card">
+          <div class="pr-row"><b>Câu ${S.idx + 1}/${n}</b><span style="color:var(--text-muted);font-size:.85rem">${esc(S.att.full_name)} – Lớp ${esc(S.att.class_name)} · Đã trả lời ${done}/${n}</span></div>
+          <div class="pr-bar" style="margin:.6rem 0"><div style="width:${done / n * 100}%"></div></div>
+          <div style="color:var(--accent-amber);font-size:.8rem">${esc(q.topic)} · ${esc(q.level)}</div>
+          <h3 style="margin:.5rem 0 1rem;line-height:1.5">${esc(q.question_text)}</h3>
+          ${['A', 'B', 'C', 'D'].map(k => `<button class="pr-opt ${S.ans[q.id] === k ? 'sel' : ''}" onclick="PR.pick('${k}')"><b>${k}.</b><span>${esc(q.options[k])}</span></button>`).join('')}
+          <div style="color:var(--text-muted);font-size:.8rem">Nhấn lại đáp án đã chọn để bỏ chọn.</div>
+          <div class="pr-nav">${S.qs.map((x, i) => `<button class="pr-chip ${S.ans[x.id] ? 'done' : ''} ${i === S.idx ? 'cur' : ''}" title="${S.ans[x.id] ? 'Đã trả lời' : 'Chưa trả lời'}" onclick="PR.go(${i})">${i + 1}</button>`).join('')}</div>
+          <div class="pr-row"><div style="display:flex;gap:.5rem"><button class="btn" ${S.idx === 0 ? 'disabled' : ''} onclick="PR.go(${S.idx - 1})">← Câu trước</button><button class="btn" ${S.idx === n - 1 ? 'disabled' : ''} onclick="PR.go(${S.idx + 1})">Câu tiếp theo →</button></div>
+            <button id="pr-sub" class="btn btn-primary" onclick="PR.submit()">Nộp bài</button></div>
+          <div id="pr-draft" style="font-size:.8rem;color:${S.draftOk ? 'var(--text-muted)' : 'var(--accent-amber)'};margin-top:.5rem">${S.draftOk ? '' : 'Chưa lưu được bản nháp lên máy chủ (mất mạng?). Bài vẫn được giữ trên máy.'}</div>
+          <div id="pr-msg"></div></div>`;
+      }
+      function go(i) { if (i < 0 || i >= S.qs.length) return; S.idx = i; saveLS(); quiz(); }
+      function pick(k) {
+        const id = S.qs[S.idx].id; if (S.ans[id] === k) delete S.ans[id]; else S.ans[id] = k;
+        saveLS(); quiz(); clearTimeout(S.timer);
+        S.timer = setTimeout(async () => { try { await rpc('practice_save_draft', { p_attempt_id: S.att.attempt_id, p_answers: S.ans }); S.draftOk = true; } catch (e) { S.draftOk = false; } const el = $('pr-draft'); if (el && !S.draftOk) el.textContent = 'Chưa lưu được bản nháp lên máy chủ (mất mạng?). Bài vẫn được giữ trên máy.'; }, 1500);
+      }
+      async function submit() {
+        if (S.busy) return;
+        const un = S.qs.length - Object.keys(S.ans).length;
+        if (un > 0 && !confirm(`Bạn còn ${un} câu chưa trả lời. Vẫn nộp bài?`)) return;
+        S.busy = true; $('pr-sub').disabled = true; clearTimeout(S.timer); msg('pr-msg', 'Đang nộp bài, vui lòng không đóng trang...');
+        try {
+          const r = await rpc('practice_submit_attempt', { p_attempt_id: S.att.attempt_id, p_answers: S.ans });
+          clearLS(); try { localStorage.setItem(LSLAST, r.attempt_id); } catch (e) {}
+          S.busy = false; result(r, true);
+        } catch (e) { S.busy = false; if ($('pr-sub')) $('pr-sub').disabled = false; msg('pr-msg', 'CHƯA nộp được bài. ' + errText(e) + ' Nhấn "Nộp bài" để thử lại.', 'err'); }
+      }
+
+      /* ---------- Kết quả ---------- */
+      function result(r, fresh) {
+        S.res = r; const nx = r.answers.length;
+        const cm = r.score >= 8 ? 'Xuất sắc! Bạn nắm rất vững kiến thức.' : r.score >= 6.5 ? 'Khá tốt. Hãy xem lại các câu sai để hoàn thiện thêm.' : r.score >= 5 ? 'Đạt yêu cầu. Nên ôn lại các phần còn sai bằng các mô phỏng trong website.' : 'Cần ôn tập thêm. Hãy thực hành lại với Phòng thí nghiệm Cổng Logic và Bộ cộng & Số học.';
+        $('pr-root').innerHTML = `<div class="pr-card"><h2>Kết quả luyện tập</h2>
+          ${fresh ? '<div class="pr-msg ok">✅ Bài làm đã được lưu thành công trên hệ thống.</div>' : ''}
+          <p style="margin-top:.75rem"><b>${esc(r.full_name)}</b> – Lớp ${esc(r.class_name)} · Lần ${r.attempt_number}</p>
+          <div class="pr-stats"><div class="pr-stat"><b style="color:var(--accent-blue)">${r.score}</b>Điểm / 10</div><div class="pr-stat"><b style="color:var(--accent-emerald)">${r.correct_count}</b>Câu đúng</div><div class="pr-stat"><b style="color:var(--accent-red)">${r.wrong_count}</b>Câu sai</div><div class="pr-stat"><b style="color:var(--accent-amber)">${r.unanswered_count}</b>Chưa trả lời</div><div class="pr-stat"><b style="font-size:1.1rem">${fmtDur(r.duration_seconds)}</b>Thời gian làm bài</div></div>
+          <p style="color:var(--text-muted)">Bắt đầu: ${fmtDT(r.started_at)} · Nộp: ${fmtDT(r.submitted_at)} · Tỷ lệ đúng: ${Math.round(r.correct_count / nx * 100)}%</p>
+          <p style="margin:.75rem 0">${esc(cm)}</p>
+          <div style="display:flex;gap:.75rem;flex-wrap:wrap"><button class="btn btn-primary" onclick="PR.review()">Xem lại bài làm</button><button class="btn" onclick="PR.landing()">Quay lại Luyện Tập</button></div></div>
+          <div id="pr-review"></div>`;
+      }
+      function review() {
+        $('pr-review').innerHTML = `<div class="pr-card"><h3 style="margin-bottom:1rem">Chi tiết từng câu</h3>` + S.res.answers.map(a => {
+          const cls = a.selected_answer == null ? 'na' : a.is_correct ? 'ok' : '';
+          const sel = a.selected_answer ? `${a.selected_answer}. ${a.options[a.selected_answer]}` : 'Chưa trả lời';
+          return `<div class="pr-rev ${cls}"><b>Câu ${a.position}.</b> ${esc(a.question_text)}<br><span style="color:var(--text-muted)">Bạn chọn:</span> ${esc(sel)}<br><span style="color:var(--accent-emerald)">Đáp án đúng: ${a.correct_answer}. ${esc(a.options[a.correct_answer])}</span><br><i style="color:var(--text-muted)">${esc(a.explanation)}</i></div>`;
+        }).join('') + '</div>';
+        $('pr-review').scrollIntoView({ behavior: 'smooth' });
+      }
+      window.PR = { landing, openForm, start, resume, showLast, go, pick, submit, review };
+
+      /* ---------- Khu vực giáo viên ---------- */
+      const T = { rows: [], sel: [] };
+      const troot = () => $('pr-teacher-root');
+      async function tInit() {
+        let sess = null;
+        try { sess = (await client().auth.getSession()).data.session; } catch (e) { return tLogin(errText(e)); }
+        if (sess && !sess.user.is_anonymous) { try { if (await rpc('is_teacher')) return tLoad(); } catch (e) {} }
+        tLogin();
+      }
+      function tLogin(m) {
+        troot().innerHTML = `<div class="pr-card" style="max-width:420px"><h2>🔒 Đăng nhập giáo viên</h2><p style="color:var(--text-muted);margin:.5rem 0 1rem;font-size:.9rem">Chỉ tài khoản giáo viên được cấp quyền mới xem được kết quả.</p>
+          <div class="pr-field"><label>Email</label><input id="t-mail" class="pr-input" type="email" autocomplete="username"></div>
+          <div class="pr-field"><label>Mật khẩu</label><input id="t-pass" class="pr-input" type="password" autocomplete="current-password"></div>
+          <button class="btn btn-primary" onclick="PRT.login()">Đăng nhập</button> <button class="btn" onclick="switchView('practice')">Quay lại</button><div id="t-msg">${m ? `<div class="pr-msg err">${esc(m)}</div>` : ''}</div></div>`;
+      }
+      async function login() {
+        try { const c = client(); const r = await c.auth.signInWithPassword({ email: $('t-mail').value.trim(), password: $('t-pass').value });
+          if (r.error) throw r.error;
+          if (!(await rpc('is_teacher'))) { await c.auth.signOut(); return tLogin('Tài khoản này chưa được cấp quyền giáo viên.'); }
+          tLoad();
+        } catch (e) { $('t-msg').innerHTML = `<div class="pr-msg err">${esc(/Invalid login/i.test(e.message) ? 'Sai email hoặc mật khẩu.' : errText(e))}</div>`; }
+      }
+      async function tLoad() {
+        troot().innerHTML = '<div class="pr-card">Đang tải dữ liệu...</div>';
+        try { let all = [], from = 0;
+          for (;;) { const r = await client().from('practice_attempts').select('id,attempt_number,status,started_at,submitted_at,total_questions,correct_count,wrong_count,unanswered_count,score,duration_seconds,students(full_name,class_name)').order('started_at', { ascending: false }).range(from, from + 999);
+            if (r.error) throw r.error; all = all.concat(r.data); if (r.data.length < 1000) break; from += 1000; }
+          T.rows = all; tRender();
+        } catch (e) { troot().innerHTML = `<div class="pr-card"><div class="pr-msg err">${esc(errText(e))}</div><button class="btn" style="margin-top:1rem" onclick="PRT.logout()">Đăng xuất</button></div>`; }
+      }
+      function tFilter() {
+        const n = ($('t-q') ? $('t-q').value : '').toLowerCase(), c = $('t-c') ? $('t-c').value : '', f = $('t-f') ? $('t-f').value : '', t = $('t-t') ? $('t-t').value : '';
+        return T.rows.filter(r => (!n || r.students.full_name.toLowerCase().includes(n)) && (!c || r.students.class_name === c) &&
+          (!f || r.started_at.slice(0, 10) >= f) && (!t || r.started_at.slice(0, 10) <= t));
+      }
+      function tRender() {
+        const keep = { q: $('t-q') ? $('t-q').value : '', c: $('t-c') ? $('t-c').value : '', f: $('t-f') ? $('t-f').value : '', t: $('t-t') ? $('t-t').value : '' };
+        const classes = [...new Set(T.rows.map(r => r.students.class_name))].sort();
+        troot().innerHTML = `<div class="pr-card"><div class="pr-row"><h2>📊 Kết quả luyện tập</h2><div style="display:flex;gap:.5rem;flex-wrap:wrap"><button class="btn" onclick="PRT.reload()">↻ Tải lại</button><button class="btn" onclick="PRT.csv()">⬇ Xuất CSV</button><button class="btn" onclick="PRT.logout()">Đăng xuất</button><button class="btn" onclick="switchView('practice')">Quay lại</button></div></div>
+          <div class="pr-row" style="margin:1rem 0;justify-content:flex-start"><input id="t-q" class="pr-input" style="max-width:220px" placeholder="Tìm theo tên" oninput="PRT.render()" value="${esc(keep.q)}">
+          <select id="t-c" class="pr-input" style="max-width:140px" onchange="PRT.render()"><option value="">Tất cả lớp</option>${classes.map(x => `<option ${x === keep.c ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select>
+          <label style="font-size:.8rem">Từ <input id="t-f" type="date" class="pr-input" style="width:auto" onchange="PRT.render()" value="${keep.f}"></label><label style="font-size:.8rem">Đến <input id="t-t" type="date" class="pr-input" style="width:auto" onchange="PRT.render()" value="${keep.t}"></label></div>
+          <div style="overflow-x:auto"><table class="pr-tbl"><thead><tr><th>Họ và tên</th><th>Lớp</th><th>Lần</th><th>Bắt đầu</th><th>Nộp bài</th><th>Điểm</th><th>Đúng</th><th>Sai</th><th>Bỏ trống</th><th>Trạng thái</th></tr></thead><tbody id="t-body"></tbody></table></div><div id="t-detail"></div></div>`;
+        if (keep.q) $('t-q').focus();
+        T.sel = tFilter();
+        $('t-body').innerHTML = T.sel.map((r, i) => `<tr class="clk" onclick="PRT.detail(${i})"><td>${esc(r.students.full_name)}</td><td>${esc(r.students.class_name)}</td><td>${r.attempt_number}</td><td>${fmtDT(r.started_at)}</td><td>${fmtDT(r.submitted_at)}</td><td>${r.score ?? ''}</td><td>${r.correct_count ?? ''}</td><td>${r.wrong_count ?? ''}</td><td>${r.unanswered_count ?? ''}</td><td>${r.status === 'submitted' ? 'Đã nộp' : r.status === 'in_progress' ? 'Đang làm' : 'Lỗi'}</td></tr>`).join('') || '<tr><td colspan="10">Không có dữ liệu.</td></tr>';
+      }
+      async function detail(i) {
+        const r = T.sel[i]; const box = $('t-detail'); box.innerHTML = '<p style="margin-top:1rem">Đang tải...</p>';
+        const d = await client().from('practice_answers').select('question_position,selected_answer,correct_answer,is_correct,question_snapshot').eq('attempt_id', r.id).order('question_position');
+        if (d.error) { box.innerHTML = `<div class="pr-msg err">${esc(errText(d.error))}</div>`; return; }
+        box.innerHTML = `<h3 style="margin:1.25rem 0 .5rem">${esc(r.students.full_name)} – ${esc(r.students.class_name)} (lần ${r.attempt_number})</h3>` + (d.data.length ? d.data.map(a => `<div class="pr-rev ${a.selected_answer == null ? 'na' : a.is_correct ? 'ok' : ''}"><b>Câu ${a.question_position}.</b> ${esc(a.question_snapshot.question_text)}<br>Chọn: <b>${a.selected_answer || '—'}</b> · Đúng: <b>${a.correct_answer}</b></div>`).join('') : '<p>Lượt này chưa nộp nên chưa có chi tiết.</p>');
+        box.scrollIntoView({ behavior: 'smooth' });
+      }
+      function csv() {
+        const cell = v => { v = String(v ?? ''); if (/^[=+\-@\t\r]/.test(v)) v = "'" + v; return '"' + v.replace(/"/g, '""') + '"'; };
+        const rows = [['Họ và tên', 'Lớp', 'Lần', 'Bắt đầu', 'Nộp bài', 'Điểm', 'Đúng', 'Sai', 'Chưa trả lời', 'Thời gian (giây)', 'Trạng thái']].concat(tFilter().map(r => [r.students.full_name, r.students.class_name, r.attempt_number, r.started_at, r.submitted_at, r.score, r.correct_count, r.wrong_count, r.unanswered_count, r.duration_seconds, r.status]));
+        const blob = new Blob(['\ufeff' + rows.map(r => r.map(cell).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'ket-qua-luyen-tap.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      }
+      async function logout() { try { await client().auth.signOut(); } catch (e) {} tLogin(); }
+      window.PRT = { login, logout, reload: tLoad, render: tRender, detail, csv };
+
+      /* ---------- Gắn vào switchView hiện có (bọc, không sửa hàm gốc) ---------- */
+      const baseSwitch = window.switchView;
+      window.switchView = function (viewId) {
+        baseSwitch(viewId);
+        if (viewId === 'practice') landing();
+        if (viewId === 'results') { try { client(); tInit(); } catch (e) { tLogin(errText(e)); } }
+      };
+    })();
+    </script>
+</body>
+</html>
